@@ -1,9 +1,9 @@
 {
   "name": "scenario-discovery",
-  "version": "0.2.0",
-  "description": "Phase 1 (Analysis) worker for ScenarioForge. Turns raw user requirements into a traceable scenarios.json that becomes the scenario spine for all later phases. Includes a beat-1.5 multi-persona ideation panel (registry-driven, expandable, optional external OpenAI-compatible AI providers) and event-first (Event Storming) elicitation.",
+  "version": "0.3.0",
+  "description": "Phase 1 (Analysis) worker for ScenarioForge. Turns raw user requirements into a traceable scenarios.json that becomes the scenario spine for all later phases. Includes a beat-1.5 multi-persona ideation panel (registry-driven, expandable; personas run natively, on external OpenAI-compatible AI providers, or on local AI CLIs — codex/opencode/gemini/claude) and event-first (Event Storming) elicitation.",
   "author": {
     "name": "Mounchon"
   },
-  "keywords": ["scenario", "requirements", "analysis", "bmad", "ddd", "discovery", "multi-persona", "ideation", "event-storming", "external-models"]
+  "keywords": ["scenario", "requirements", "analysis", "bmad", "ddd", "discovery", "multi-persona", "ideation", "event-storming", "external-models", "cli-personas"]
 }

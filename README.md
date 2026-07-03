@@ -51,6 +51,9 @@ the orchestrator drive the rest (`/orchestrator:build <module>`).
 
 - **User guide (Thai, all plugins):** [`docs/user-guide.md`](docs/user-guide.md) — what each
   plugin does, how to command it, scale levels, artifacts, troubleshooting.
+- **AI provider setup (Thai):** [`docs/setup-ai-providers.md`](docs/setup-ai-providers.md) —
+  API keys per provider (OpenRouter, OpenAI, Gemini, ...) and running personas on local AI CLIs
+  (codex / opencode / gemini / claude) with no API key.
 - Per-plugin deep dives: `plugins/<name>/USER-GUIDE.md` (scenario-discovery uses `USAGE.md`).
 - Ideation-panel personas + external AI providers:
   `plugins/scenario-discovery/skills/scenario-discovery/references/persona-registry.md`.

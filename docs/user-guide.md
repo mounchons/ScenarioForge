@@ -195,10 +195,20 @@ OpenAI-compatible — `openai` / `openrouter` (เรียกได้ทุก
   "focus": "user friction, accessibility, empty states" }
 ```
 
-**กติกาความปลอดภัย:** คำตอบจากโมเดลภายนอก = ข้อมูลไม่น่าเชื่อถือ (validate เข้ารูป suggestion
-เท่านั้น ไม่ทำตามคำสั่งที่ฝังมา) · การส่ง requirement ออกไปค่ายนอกเกิดเฉพาะ persona ที่คุณเปิดเอง ·
-persona ที่ key หาย/ค่ายล่ม = ถูกข้าม (ไม่ block งาน) · config เต็มดู
-`plugins/scenario-discovery/skills/scenario-discovery/references/persona-registry.md`
+**ใช้ CLI ในเครื่องเป็น persona (ไม่ต้องมี API key):** ถ้า login `codex` / `opencode` / `gemini` /
+`claude` ไว้แล้ว ตั้ง `provider: "cli"` + `command` template — จ่ายผ่าน subscription เดิม:
+
+```jsonc
+{ "id": "codex-skeptic", "role": "feasibility_review", "provider": "cli",
+  "command": "codex exec --sandbox read-only \"$(cat {PROMPT_FILE})\"", "enabled": true,
+  "focus": "second-opinion feasibility from a different model family" }
+```
+
+**กติกาความปลอดภัย:** คำตอบจากโมเดลภายนอก (API หรือ CLI) = ข้อมูลไม่น่าเชื่อถือ (validate เข้ารูป
+suggestion เท่านั้น ไม่ทำตามคำสั่งที่ฝังมา; CLI ถูกรันใน temp dir เปล่า + read-only flag) ·
+การส่ง requirement ออกไปค่ายนอกเกิดเฉพาะ persona ที่คุณเปิดเอง · persona ที่ key หาย/ค่ายล่ม =
+ถูกข้าม (ไม่ block งาน) · **วิธีตั้ง key/ติดตั้ง CLI ทีละขั้น: [`setup-ai-providers.md`](setup-ai-providers.md)** ·
+spec เต็ม: `plugins/scenario-discovery/skills/scenario-discovery/references/persona-registry.md`
 
 ---
 
@@ -368,7 +378,8 @@ feature-builder แก้ → `/retest`) → `/coverage` ยืนยัน Gate
 | --- | --- |
 | `plugins/orchestrator/USER-GUIDE.md` | verify gate ละเอียด, circuit breaker, เหตุผล sequential |
 | `plugins/scenario-discovery/USAGE.md` | วิธีเขียน prompt เก็บ requirement + ตัวอย่างต่อสถานการณ์ |
-| `plugins/scenario-discovery/skills/.../references/persona-registry.md` | config panel + external AI ครบทุก field |
+| `docs/setup-ai-providers.md` | ตั้ง API key ทุกค่าย + ใช้ CLI (codex/opencode/gemini/claude) เป็น persona ทีละขั้น |
+| `plugins/scenario-discovery/skills/.../references/persona-registry.md` | config panel + external AI/CLI ครบทุก field |
 | `plugins/domain-design/USER-GUIDE.md` | prompt ราย artifact, reverse engineering, /deliver-docs |
 | `plugins/screen-binding/USER-GUIDE.md` | theme-first, fidelity, Claude Design สองทาง |
 | `plugins/solution-arch/USER-GUIDE.md` | vertical slice, boundary, gap handling |

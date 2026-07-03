@@ -10,10 +10,10 @@
     {
       "name": "scenario-discovery",
       "source": "./plugins/scenario-discovery",
-      "description": "Phase 1 (Analysis). Turns raw user requirements into a traceable scenarios.json — the spine that every later phase references. Human supplies business intent; AI agents enrich the analysis layer but cannot commit. Includes a beat-1.5 multi-persona ideation panel (registry-driven and expandable; personas can run on external OpenAI-compatible AI providers for model diversity) and event-first (Event Storming) elicitation.",
-      "version": "0.2.0",
+      "description": "Phase 1 (Analysis). Turns raw user requirements into a traceable scenarios.json — the spine that every later phase references. Human supplies business intent; AI agents enrich the analysis layer but cannot commit. Includes a beat-1.5 multi-persona ideation panel (registry-driven and expandable; personas can run on external OpenAI-compatible AI providers or on local AI CLIs — codex/opencode/gemini/claude — for model diversity without extra API cost) and event-first (Event Storming) elicitation.",
+      "version": "0.3.0",
       "category": "development",
-      "keywords": ["scenario", "requirements", "analysis", "bmad", "ddd", "discovery", "multi-persona", "ideation", "event-storming", "external-models"]
+      "keywords": ["scenario", "requirements", "analysis", "bmad", "ddd", "discovery", "multi-persona", "ideation", "event-storming", "external-models", "cli-personas"]
     },
     {
       "name": "domain-design",
