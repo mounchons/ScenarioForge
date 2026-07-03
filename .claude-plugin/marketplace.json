@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "scenarioforge",
+  "version": "0.1.0",
+  "description": "ScenarioForge — scenario-spined plugin suite for Claude Code. BMAD 4-phase pipeline (Analysis -> Planning -> Solutioning -> Implementation) with an orchestrator + 3-tier worker architecture, where a business scenario is the aggregate root that every phase traces back to.",
+  "owner": {
+    "name": "Mounchon"
+  },
+  "plugins": [
+    {
+      "name": "scenario-discovery",
+      "source": "./plugins/scenario-discovery",
+      "description": "Phase 1 (Analysis). Turns raw user requirements into a traceable scenarios.json — the spine that every later phase references. Human supplies business intent; AI agents enrich the analysis layer but cannot commit. Includes a beat-1.5 multi-persona ideation panel (registry-driven and expandable; personas can run on external OpenAI-compatible AI providers for model diversity) and event-first (Event Storming) elicitation.",
+      "version": "0.2.0",
+      "category": "development",
+      "keywords": ["scenario", "requirements", "analysis", "bmad", "ddd", "discovery", "multi-persona", "ideation", "event-storming", "external-models"]
+    },
+    {
+      "name": "domain-design",
+      "source": "./plugins/domain-design",
+      "description": "Phase 2 (Planning). Reads each scenario's business + domain_concepts and produces the domain model — entities, Data Dictionary, use cases, API contracts, sitemap — writing traces_down back to the spine. Scale-adaptive, with a /deliver-docs command that assembles the full 10-section System Design Document for handoff.",
+      "version": "0.1.0",
+      "category": "development",
+      "keywords": ["domain-design", "data-dictionary", "er-diagram", "planning", "bmad", "ddd", "system-design-doc"]
+    },
+    {
+      "name": "screen-binding",
+      "source": "./plugins/screen-binding",
+      "description": "Phase 2 (Planning, UI). Theme-first: builds a Bootstrap 5 master page + theme.css + navbar + menu nav from the sitemap as viewable HTML, then mocks each has_ui screen as a wireframe or a high-fidelity HTML page (via the frontend-design skill). Talks to Claude Design both ways — import a handoff bundle or generate per-screen prompts — and binds every page back via traces_down.pages. Renamed from ui-mockup.",
+      "version": "0.2.0",
+      "category": "development",
+      "keywords": ["screen-binding", "ui-mockup", "master-page", "navbar", "theme", "bootstrap", "wireframe", "html-mockup", "claude-design", "design-prompt", "planning", "bmad"]
+    },
+    {
+      "name": "solution-arch",
+      "source": "./plugins/solution-arch",
+      "description": "Phase 3 (Solutioning). Reads each scenario's traces_down (entities + apis from domain-design, pages from screen-binding) and composes feature units (FE-xxx) with their layering — controller, service/handler, repository, DI, DTOs — into features.json, then writes traces_down.features back to the spine. Says HOW the design assembles; never invents entities or writes code. Scale-adaptive (QUICK/STANDARD/ENTERPRISE).",
+      "version": "0.1.0",
+      "category": "development",
+      "keywords": ["solution-arch", "feature-decomposition", "layering", "vertical-slice", "solutioning", "bmad", "ddd", "mediatr"]
+    },
+    {
+      "name": "feature-builder",
+      "source": "./plugins/feature-builder",
+      "description": "Phase 4 (Implementation). The Tier 2 agentic worker (renamed from long-running). Picks ready features from features.json and builds each into working code (ASP.NET Core 8 MVC + EF Core + DDD), looping build -> fix until green. Acts as a per-feature dispatcher: routes hard / cross-page / security-sensitive features to an Opus subagent and clusters of simple, similar features to an Opus-built exemplar + Sonnet replicas, to cut cost without losing quality. Runs an 8-step verification pipeline (build, design compliance, CRUD, API integration, test coverage, tech audit, config, Scenario Trace Check) plus a UI Control Manifest gate on every feature, writing traces_down.features back to the spine. Resumable via a progress ledger; circuit-breaker bounded with Sonnet->Opus escalation. Provides /implement, /route, /continue, /status, /verify, /retry, /gaps, /help commands.",
+      "version": "0.2.0",
+      "category": "development",
+      "keywords": ["feature-builder", "implement", "implementation", "agentic", "model-routing", "opus", "sonnet", "verification-pipeline", "ui-control-manifest", "scenario-trace", "resumable", "bmad", "ddd", "dotnet"]
+    },
+    {
+      "name": "scenario-verify",
+      "source": "./plugins/scenario-verify",
+      "description": "Phase 4 (QA). The end-of-spine prover (renamed from qa-ui-test). Reads each scenario's acceptance criteria plus the UI Control Manifests feature-builder emitted, and derives traceable E2E test scenarios (TS-xxx) into qa-tracker.json — Layer 2 of the two-layer fence. For every form control it generates the 5 mandatory test categories (render-binding, api-binding, permission, validation, cascade-loading-error), each carrying a scenario_ref so a test always traces back to the business scenario it proves. Generation is a deterministic Tier 1 pass; running the suite is a Tier 2 agentic loop (run -> debug -> retry through Playwright until each scenario goes green or a circuit breaker bounds it). Acts as a per-category dispatcher: permission / cascade -> Opus, api-binding / validation -> Sonnet, render-binding -> Haiku. Enforces Gate 4 (control coverage) — every control x mandatory category must have a passing scenario before release. Writes traces_down.test_scenarios back to the spine; resumable via the qa-tracker ledger. Provides /generate, /run, /route, /continue, /retest, /status, /coverage, /edit, /gaps, /help commands.",
+      "version": "0.1.0",
+      "category": "development",
+      "keywords": ["scenario-verify", "qa-ui-test", "qa", "e2e", "verification", "test-generation", "ui-control-manifest", "two-layer-fence", "gate-4", "control-coverage", "playwright", "scenario-trace", "model-routing", "resumable", "bmad", "ddd", "dotnet"]
+    },
+    {
+      "name": "orchestrator",
+      "source": "./plugins/orchestrator",
+      "description": "Tier 0 coordinator — the single entry point that drives the whole pipeline. Reads the scenario spine (scenarios.json), decides the effort scale, plans the phase sequence (Analysis -> Planning -> Planning/UI -> Solutioning -> Implementation -> QA), and delegates each phase to its worker with a 4-part contract — without writing any artifact itself. Between phases it runs a verify gate that checks the finished worker's handoff against the spine before the next phase may start; a red gate stops the line (re-delegate once for a worker shortfall, or surface an upstream gap for the user to resolve). Sequential delegation (each phase consumes the last's output), flat hierarchy (the orchestrator spawns workers; a worker never spawns a worker), circuit-breaker bounded (a per-run cap on delegations and gate retries). Resumable across sessions via a run ledger. Provides /build, /plan, /next, /status, /gate, /resume, /scale, /help commands.",
+      "version": "0.1.1",
+      "category": "development",
+      "keywords": ["orchestrator", "coordinator", "tier-0", "delegation", "verify-gate", "phase-sequence", "scenario-spine", "scale-adaptive", "circuit-breaker", "artifact-handoff", "resumable", "bmad", "ddd", "dotnet"]
+    }
+  ]
+}

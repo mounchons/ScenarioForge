@@ -1,0 +1,9 @@
+{
+  "name": "feature-builder",
+  "version": "0.2.0",
+  "description": "Phase 4 (Implementation) agentic worker for ScenarioForge. Picks ready features from features.json and builds each into working code against the ASP.NET Core 8 MVC + EF Core + DDD stack, looping build -> fix until green. Acts as a per-feature dispatcher: routes hard / cross-page / security-sensitive features to an Opus subagent and clusters of simple, similar features to an Opus-built exemplar + Sonnet replicas, to cut cost without losing quality. Runs an 8-step verification pipeline (build, design compliance, CRUD, API integration, test coverage, tech audit, config, and Scenario Trace Check) plus a UI Control Manifest gate on every feature regardless of model, and writes traces_down.features back to the scenario spine. Resumable across sessions via a progress ledger; circuit-breaker bounded with Sonnet->Opus escalation. (Renamed from long-running.)",
+  "author": {
+    "name": "Mounchon"
+  },
+  "keywords": ["feature-builder", "implement", "implementation", "agentic", "model-routing", "opus", "sonnet", "exemplar-replica", "verification-pipeline", "ui-control-manifest", "scenario-trace", "resumable", "bmad", "ddd", "dotnet"]
+}

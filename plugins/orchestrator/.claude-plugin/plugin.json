@@ -1,0 +1,9 @@
+{
+  "name": "orchestrator",
+  "version": "0.1.1",
+  "description": "Tier 0 coordinator for ScenarioForge. The single entry point a user drives: it reads the scenario spine (scenarios.json), decides scale (QUICK/STANDARD/ENTERPRISE), plans the phase sequence (Analysis -> Planning -> Planning/UI -> Solutioning -> Implementation -> QA), and delegates each phase to the right worker with a 4-part contract — never writing artifacts itself. Between phases it runs a verify gate that checks the just-finished worker's handoff against the spine before allowing the next phase to start. Workers hand back light artifact pointers, never file dumps; the orchestrator holds the plan, the workers do the work. Sequential delegation (each phase depends on the last), flat hierarchy (the orchestrator spawns workers, a worker never spawns a worker), and circuit-breaker bounded (a per-run cap on delegations and gate retries). Provides /build, /plan, /next, /status, /gate, /resume, /scale, /help commands.",
+  "author": {
+    "name": "Mounchon"
+  },
+  "keywords": ["orchestrator", "coordinator", "tier-0", "delegation", "scenario-spine", "verify-gate", "phase-sequence", "scale-adaptive", "circuit-breaker", "artifact-handoff", "bmad", "ddd", "scenarioforge"]
+}

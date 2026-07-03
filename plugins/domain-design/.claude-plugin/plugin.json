@@ -1,0 +1,9 @@
+{
+  "name": "domain-design",
+  "version": "0.1.0",
+  "description": "Phase 2 (Planning) worker for ScenarioForge. Reads each scenario's business + domain_concepts and produces the domain model — entities, Data Dictionary, use cases, API contracts, sitemap — writing traces_down back to the scenario spine. Scale-adaptive, with a deliver-docs command that assembles the full 10-section System Design Document for handoff.",
+  "author": {
+    "name": "Mounchon"
+  },
+  "keywords": ["domain-design", "data-dictionary", "er-diagram", "planning", "bmad", "ddd", "system-design-doc"]
+}

@@ -1,0 +1,5 @@
+# Shell scripts must stay LF — a CRLF shebang breaks bash outside Git-Bash
+*.sh text eol=lf
+
+# Everything else: normalize per platform default
+* text=auto

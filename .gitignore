@@ -1,0 +1,7 @@
+# Plugin session/memory artifacts (per-machine, not repo content)
+.brain/
+.bigbrain/
+.remember/
+
+# ScenarioForge run artifacts (created when testing the pipeline inside this repo)
+.scenarioforge/
