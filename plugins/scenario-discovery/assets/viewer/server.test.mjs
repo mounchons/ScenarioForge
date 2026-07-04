@@ -242,6 +242,19 @@ test('makeSnapshot escapes < so data cannot break out of the script tag', () => 
   assert.ok(!out.includes('</script><script>alert(1)</script>'));
 });
 
+test('makeSnapshot: $-sequences in data cannot trigger replace-pattern injection', () => {
+  const viewer = readFileSync(join(__dirname, 'viewer.html'), 'utf8');
+  const doc = loadFixture();
+  doc.scenarios[0].title = 'a$&b$`c</script>';
+  const out = makeSnapshot(viewer, doc);
+  const m = out.match(/<script id="sf-data" type="application\/json">([\s\S]*?)<\/script>/);
+  assert.ok(m, 'sf-data block present');
+  // If a $& expanded the matched placeholder into the data, this JSON would be
+  // truncated at the injected </script> and fail to parse.
+  const parsed = JSON.parse(m[1]);
+  assert.equal(parsed.scenarios[0].title, 'a$&b$`c</script>');
+});
+
 test('--snapshot CLI writes scenarios-report.html next to the source file', () => {
   const file = tempCopy();
   execFileSync(process.execPath, [join(__dirname, 'server.mjs'), '--file', file, '--snapshot']);

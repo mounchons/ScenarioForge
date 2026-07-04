@@ -188,9 +188,12 @@ export function atomicWrite(file, doc) {
 export function makeSnapshot(viewerHtml, doc) {
   const stripped = viewerHtml.replace(/<!--LIVE-ONLY-START-->[\s\S]*?<!--LIVE-ONLY-END-->/g, '');
   const json = JSON.stringify(doc).replace(/</g, '\\u003c');
+  // Use a function replacer: its return value is inserted literally, so a `$&`/`$$`
+  // sequence in the embedded JSON cannot trigger String.replace pattern expansion and
+  // re-inject the matched placeholder (which carries a raw </script>) into the data.
   return stripped.replace(
     '<script id="sf-data" type="application/json"></script>',
-    `<script id="sf-data" type="application/json">${json}</script>`
+    () => `<script id="sf-data" type="application/json">${json}</script>`
   );
 }
 
