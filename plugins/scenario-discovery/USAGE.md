@@ -131,3 +131,12 @@ discover scenarios โมดูล order:
 | "ทำ scenario ให้หน่อย" | ไม่บอกโมดูล/requirement | "discover scenarios โมดูล billing: <requirement>" |
 | "เขียนโค้ด billing" | ผิด skill (นี่ Phase 1) | "discover scenarios โมดูล billing ก่อน" |
 | "เพิ่ม scenario" (ทั้งที่ยังไม่มีไฟล์) | ไม่มีของเดิมให้ append | "discover scenarios โมดูล X" (CREATE) |
+
+---
+
+## ดู scenarios.json แบบ human-readable — `/scenario-discovery:view`
+
+- `/scenario-discovery:view` — เปิด viewer ใน browser (live): ดู node ย่อยทุกชั้น, filter/ค้นหา,
+  กดยอมรับ/ปฏิเสธ suggestion และติ๊ก human_validated ได้ — เขียนกลับเข้าไฟล์ให้เอง พร้อมคำนวณ rollup ใหม่
+- `/scenario-discovery:view snapshot` — สร้าง `scenarios-report.html` ไฟล์เดียวจบ (read-only)
+  ส่งให้ลูกค้าเปิดดูได้เลย ไม่ต้องติดตั้งอะไร
