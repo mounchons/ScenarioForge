@@ -1,0 +1,108 @@
+{
+  "$schema": "https://scenarioforge/schemas/scenarios.v1.json",
+  "meta": {
+    "module": "demo",
+    "schema_version": "1.1.0",
+    "generated_by": "scenario-discovery",
+    "generated_at": "2026-07-04T04:00:00Z",
+    "effort_scale": "STANDARD",
+    "status": "analyzing"
+  },
+  "scenarios": [
+    {
+      "id": "SC-demo-001",
+      "title": "Customer pays monthly subscription by credit card",
+      "phase_origin": 1,
+      "status": "needs_review",
+      "business": {
+        "actor": "Customer (subscriber)",
+        "goal": "Pay successfully and receive a receipt",
+        "trigger": "Billing cycle due",
+        "preconditions": ["has active subscription", "has a card on file"],
+        "postconditions": ["invoice=paid", "receipt sent"],
+        "business_value": "Protect recurring revenue",
+        "priority": "high",
+        "has_ui": true,
+        "domain_concepts": ["Subscription", "Invoice", "Payment", "Receipt"]
+      },
+      "traces_down": {
+        "user_stories": [], "use_cases": [], "acceptance_criteria": [],
+        "entities": ["Subscription", "Invoice"], "pages": [], "apis": [],
+        "features": [], "test_scenarios": []
+      },
+      "analysis": {
+        "completeness": {
+          "score": 0.72,
+          "scored_by": "scenario-critic",
+          "scored_at": "2026-07-04T04:05:00Z",
+          "gaps": [
+            { "type": "missing_edge_case", "severity": "high", "detail": "Does not cover a declined card", "raised_by": "scenario-critic" },
+            { "type": "ambiguous", "severity": "medium", "detail": "Receipt channel (email vs in-app) unspecified", "raised_by": "scenario-critic" }
+          ]
+        },
+        "suggestions": [
+          {
+            "id": "SUG-demo-001",
+            "kind": "new_edge_case",
+            "proposed": { "title": "Handle declined card with retry window", "rationale": "Most common payment failure" },
+            "raised_by": "scenario-critic",
+            "raised_at": "2026-07-04T04:05:00Z",
+            "status": "pending",
+            "resolution": null
+          },
+          {
+            "id": "SUG-demo-002",
+            "kind": "open_question",
+            "proposed": { "title": "Should proration apply on mid-cycle upgrades?", "rationale": "Affects invoice amount" },
+            "raised_by": "domain-expert@openrouter/google/gemini-2.5-flash",
+            "raised_at": "2026-07-04T04:06:00Z",
+            "status": "accepted",
+            "resolution": { "by": "human-viewer", "at": "2026-07-04T05:00:00Z", "note": "Yes, prorate daily" }
+          }
+        ],
+        "contributors": [
+          { "agent": "scenario-discovery", "role": "discovery", "provider_model": null, "ran_at": "2026-07-04T04:00:00Z", "verdict": "drafted" },
+          { "agent": "scenario-critic", "role": "completeness_review", "provider_model": null, "ran_at": "2026-07-04T04:05:00Z", "verdict": "needs_more_edge_cases" }
+        ]
+      },
+      "provenance": { "source": "interview-2026-07-04", "confidence": 0.9, "human_validated": false }
+    },
+    {
+      "id": "SC-demo-002",
+      "title": "System retries failed payment nightly (batch)",
+      "phase_origin": 1,
+      "status": "draft",
+      "business": {
+        "actor": "Billing batch job",
+        "goal": "Recover failed payments without user action",
+        "trigger": "Nightly schedule 02:00",
+        "preconditions": ["invoice in failed state"],
+        "postconditions": ["invoice=paid or retry_count+1"],
+        "business_value": "Reduce involuntary churn",
+        "priority": "medium",
+        "has_ui": false,
+        "domain_concepts": ["Invoice", "PaymentRetry"]
+      },
+      "traces_down": {
+        "user_stories": [], "use_cases": [], "acceptance_criteria": [],
+        "entities": [], "pages": [], "apis": [], "features": [], "test_scenarios": []
+      },
+      "analysis": {
+        "completeness": { "score": null, "scored_by": null, "scored_at": null, "gaps": [] },
+        "suggestions": [],
+        "contributors": [
+          { "agent": "scenario-discovery", "role": "discovery", "provider_model": null, "ran_at": "2026-07-04T04:01:00Z", "verdict": "drafted" }
+        ]
+      },
+      "provenance": { "source": "interview-2026-07-04", "confidence": 0.7, "human_validated": false }
+    }
+  ],
+  "rollup": {
+    "total": 2,
+    "by_status": { "needs_review": 1, "draft": 1 },
+    "avg_completeness": 0.72,
+    "open_gaps_high": 1,
+    "pending_suggestions": 1,
+    "ready_for_next_phase": false
+  }
+}
