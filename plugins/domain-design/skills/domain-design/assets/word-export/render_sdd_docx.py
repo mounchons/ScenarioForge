@@ -3,7 +3,14 @@ Renders a client-ready Word document from a ScenarioForge system-design-document
 (the file domain-design's /deliver-docs command assembles) using sdd_template.docx.
 
 Usage:
-    python render_sdd_docx.py <path-to-system-design-document.md> <output.docx> [--meta doc-meta.json]
+    python render_sdd_docx.py <path-to-system-design-document.md> <output.docx> \
+        [--meta doc-meta.json] [--screens screens.json]
+
+--screens adds an optional Section 11 "Screen Specifications": one block per screen with a
+description, a spec table (Input/Output/Validation/Message/Security/Remark), a screen-fields
+table, and an embedded screenshot image. See sample/screens.json for the shape; screenshot
+paths resolve relative to the screens.json file. Without --screens the section is omitted
+entirely (the document ends at Section 10, unchanged).
 
 What it does:
   1. Parses the 10-section markdown (## headers, ```mermaid blocks, the Data Dictionary table).
@@ -147,11 +154,57 @@ def _add_runs_with_bold(paragraph, text, bold_re):
         paragraph.add_run(text[pos:])
 
 
+def build_screens_ctx(tpl, screens_path, image_width_mm=140):
+    """Load a screens.json and return the list docxtpl renders in the screen-spec section.
+    Screenshot paths resolve relative to the JSON file; a missing/blank screenshot renders as
+    an empty spot (the block still appears), so partially-captured screen sets don't fail."""
+    data = json.loads(screens_path.read_text(encoding="utf-8"))
+    base = screens_path.parent
+    screens = []
+    for s in data.get("screens", []):
+        entry = {
+            "id": s.get("id", ""),
+            "ref": s.get("ref", ""),
+            "title": s.get("title", s.get("id", "")),
+            "description": s.get("description", ""),
+            "input": s.get("input", ""),
+            "output": s.get("output", ""),
+            "validation": s.get("validation", ""),
+            "message": s.get("message", ""),
+            "security": s.get("security", ""),
+            "remark": s.get("remark", ""),
+            "fields": [
+                {
+                    "field": f.get("field", ""),
+                    "type": f.get("type", ""),
+                    "control": f.get("control", ""),
+                    "description": f.get("description", ""),
+                }
+                for f in s.get("fields", [])
+            ],
+            "screenshot_img": "",
+            "screenshot_caption": "",
+        }
+        shot = s.get("screenshot", "")
+        if shot:
+            shot_path = (base / shot).resolve()
+            if shot_path.exists():
+                entry["screenshot_img"] = InlineImage(tpl, str(shot_path), width=Mm(image_width_mm))
+                entry["screenshot_caption"] = s.get("screenshot_caption", f"รูปหน้าจอ: {entry['title']}")
+            else:
+                print(f"WARNING: screenshot not found, skipping image: {shot_path}")
+        if not entry["fields"]:
+            entry["fields"] = [{"field": "-", "type": "-", "control": "-", "description": "-"}]
+        screens.append(entry)
+    return screens
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("sdd_markdown", type=Path)
     ap.add_argument("output_docx", type=Path)
     ap.add_argument("--meta", type=Path, default=None, help="JSON with project_name/client_name/doc_version/doc_date/author/revisions")
+    ap.add_argument("--screens", type=Path, default=None, help="JSON with screens[] (spec text + fields + screenshot paths) for Section 11")
     args = ap.parse_args()
 
     md_text = args.sdd_markdown.read_text(encoding="utf-8")
@@ -255,10 +308,19 @@ def main():
     if not ctx["role_rows"]:
         ctx["role_rows"] = [{"name": "-", "permissions": "-", "pages": "no role table found"}]
 
+    # Section 11 — Screen Specifications (only when --screens given; {% if %} drops it otherwise)
+    if args.screens and args.screens.exists():
+        ctx["screens"] = build_screens_ctx(tpl, args.screens)
+    else:
+        ctx["screens"] = []
+
     tpl.render(ctx)
     args.output_docx.parent.mkdir(parents=True, exist_ok=True)
     tpl.save(str(args.output_docx))
     print(f"Wrote {args.output_docx}")
+    if ctx["screens"]:
+        shots = sum(1 for s in ctx["screens"] if s["screenshot_img"])
+        print(f"Screen specs: {len(ctx['screens'])} screens ({shots} with screenshots).")
 
 
 if __name__ == "__main__":

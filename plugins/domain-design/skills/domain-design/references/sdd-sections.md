@@ -44,5 +44,5 @@ Record it in `registry.json` as `kind: "sdd"`, `scenario_ref: ["*"]` (or the in-
 
 ## Scale note
 - STANDARD development normally yields sections 7, 8, plus API contracts + sitemap — enough to drive
-  ui-mockup and implement.
+  screen-binding and implement.
 - ENTERPRISE (or any `/deliver-docs` call) produces all 10 with the cross-validation gate enforced.

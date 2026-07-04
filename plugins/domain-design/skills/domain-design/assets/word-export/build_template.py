@@ -244,6 +244,68 @@ def build():
 
     # ---------- Section 10: User Roles & Permissions ----------
     heading(doc, "10. บทบาทผู้ใช้และสิทธิ์การเข้าถึง (User Roles & Permissions)", level=1)
+    _build_roles_table(doc)
+
+    # ---------- Section 11 (optional): Screen Specifications ----------
+    # Rendered only when the renderer receives --screens data; {% if %} drops the whole
+    # section (heading included) otherwise, so a doc without screen specs looks unchanged.
+    doc.add_paragraph("{% if screens %}")
+    doc.add_page_break()
+    heading(doc, "11. รายละเอียดหน้าจอ (Screen Specifications)", level=1)
+    doc.add_paragraph("{% for screen in screens %}")
+    sh = doc.add_heading(level=2)
+    set_thai_font(sh.add_run("{{ screen.title }}"), size=18, bold=True)
+    para(doc, "{{ screen.description }}")
+
+    spec_table = doc.add_table(rows=0, cols=2)
+    spec_rows = [
+        ("Screen ID", "{{ screen.id }}"),
+        ("Scenario Ref", "{{ screen.ref }}"),
+        ("Input", "{{ screen.input }}"),
+        ("Output", "{{ screen.output }}"),
+        ("Validation", "{{ screen.validation }}"),
+        ("Message", "{{ screen.message }}"),
+        ("Security", "{{ screen.security }}"),
+        ("Remark", "{{ screen.remark }}"),
+    ]
+    for label, tag in spec_rows:
+        cells = spec_table.add_row().cells
+        cells[0].text = ""
+        set_thai_font(cells[0].paragraphs[0].add_run(label), size=14, bold=True)
+        cells[1].text = ""
+        set_thai_font(cells[1].paragraphs[0].add_run(tag), size=14)
+    style_table(spec_table)
+
+    para(doc, "ฟิลด์บนหน้าจอ (Screen Fields)", size=15, bold=True)
+    sf_table = doc.add_table(rows=1, cols=4)
+    style_table(sf_table)
+    sf_hdr = sf_table.rows[0].cells
+    for cell, text in zip(sf_hdr, ["Field", "Type", "Control", "Description"]):
+        cell.text = ""
+        set_thai_font(cell.paragraphs[0].add_run(text), size=13, bold=True)
+    sf_for = sf_table.add_row().cells
+    sf_for[0].text = ""
+    set_thai_font(sf_for[0].paragraphs[0].add_run("{%tr for f in screen.fields %}"), size=13)
+    sf_data = sf_table.add_row().cells
+    for ci, tag in enumerate(["{{ f.field }}", "{{ f.type }}", "{{ f.control }}", "{{ f.description }}"]):
+        sf_data[ci].text = ""
+        set_thai_font(sf_data[ci].paragraphs[0].add_run(tag), size=13)
+    sf_end = sf_table.add_row().cells
+    sf_end[0].text = ""
+    set_thai_font(sf_end[0].paragraphs[0].add_run("{%tr endfor %}"), size=13)
+
+    p_shot = doc.add_paragraph()
+    p_shot.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_shot.add_run("{{ screen.screenshot_img }}")
+    cap = para(doc, "{{ screen.screenshot_caption }}", size=13, align=WD_ALIGN_PARAGRAPH.CENTER, italic=True)
+    doc.add_paragraph("{% endfor %}")
+    doc.add_paragraph("{% endif %}")
+
+    doc.save(OUT_PATH)
+    print(f"Wrote {OUT_PATH}")
+
+
+def _build_roles_table(doc):
     role_table = doc.add_table(rows=2, cols=3)
     style_table(role_table)
     role_hdr = role_table.rows[0].cells
@@ -263,9 +325,6 @@ def build():
     role_end = role_table.add_row().cells
     role_end[0].text = ""
     set_thai_font(role_end[0].paragraphs[0].add_run("{%tr endfor %}"), size=14)
-
-    doc.save(OUT_PATH)
-    print(f"Wrote {OUT_PATH}")
 
 
 if __name__ == "__main__":

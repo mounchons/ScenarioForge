@@ -35,19 +35,19 @@ and `business.domain_concepts[]`. It plans **only** from scenarios that are vali
 chosen scale — never invent business intent (that is Phase 1's job).
 
 Writes back to each scenario's `traces_down`: `entities[]`, `use_cases[]`, `apis[]`. Screen/page design
-is **not** written here — `pages[]` is owned by `ui-mockup`, which consumes this worker's sitemap +
+is **not** written here — `pages[]` is owned by `screen-binding`, which consumes this worker's sitemap +
 entities. Produces design files under `design/` (+ a registry) as the artifacts of record.
 
 ## What this worker does NOT do (boundaries)
 
 - Never write `business{}` or create new scenarios (scenario-discovery owns Phase 1).
-- Never write `traces_down.pages` (ui-mockup) or `traces_down.features` (solution-arch / implement).
+- Never write `traces_down.pages` (screen-binding) or `traces_down.features` (solution-arch / implement).
 - Never decide acceptance of an `analysis.suggestion` — that is the user's / orchestrator's right.
 - Never write code or tests.
 
 ## The bridge that matters most: Data Dictionary
 
-The Data Dictionary (DD) is the single most load-bearing artifact this worker produces. ui-mockup turns
+The Data Dictionary (DD) is the single most load-bearing artifact this worker produces. screen-binding turns
 DD fields into form fields, implement turns them into entity properties, and qa-* validates against them.
 **A DD that does not match the scenario makes everything downstream drift.** Treat DD field names, types,
 nullability, and constraints as a contract. Keep ER diagram and DD in lock-step (every entity/attribute in
@@ -72,9 +72,14 @@ End goal = a domain model where each planned scenario has valid `entities/use_ca
 `traces_down`, a DD that matches the ER, and design files written under `design/`. Working backward:
 
 ### Step 0 — Detect mode + load the spine
-- Glob/Read `scenarios.json`. If absent → stop and tell the user to run scenario-discovery first.
+- Glob/Read `scenarios.json`. If absent **and the input is not a codebase** → stop and tell the user to
+  run scenario-discovery first.
 - If a codebase is the input instead of (or alongside) scenarios → follow `references/codebase-analysis.md`
-  to reverse-engineer entities/routes/APIs, then still map each back to a `scenario_ref`.
+  to reverse-engineer entities/routes/APIs. With a spine present, map each artifact back to a
+  `scenario_ref`; with **no spine at all** (bootstrap mode — e.g. delegated as the orchestrator's
+  Phase 0) → still proceed: write `design/` as usual but no `traces_down` (nothing to attach to), and
+  record every artifact as a candidate in `reverse-notes.md` per codebase-analysis.md's bootstrap rules.
+  Never create `scenarios.json` yourself — that stays scenario-discovery's job.
 - Detect CREATE (no `design/` yet) vs UPDATE (design exists — adding/changing for new scenarios). In
   UPDATE, never clobber design of `locked` scenarios; append/modify only what changed.
 
@@ -95,11 +100,11 @@ End goal = a domain model where each planned scenario has valid `entities/use_ca
 - For each use case needing a server operation, define an API contract (method, path, request, response,
   status codes). Record the endpoint into `traces_down.apis[]`.
 - Endpoints are written to `design/*.md`; do not design screens here (`has_ui` scenarios get screens from
-  ui-mockup, which reads this sitemap + entities).
+  screen-binding, which reads this sitemap + entities).
 
 ### Step 4 — Build the sitemap (navigation, not screens)
 - Across all `has_ui == true` scenarios, lay out the page hierarchy / navigation as a sitemap.
-- This is the input ui-mockup consumes; keep page nodes named so ui-mockup can attach `PG-*` + scenario_ref.
+- This is the input screen-binding consumes; keep page nodes named so screen-binding can attach `PG-*` + scenario_ref.
 
 ### Step 5 — Write design files + write back traces_down + self-check
 - Write artifacts under `design/` (per `references/design-artifacts.md`) and update the design registry.
@@ -124,8 +129,10 @@ Cross-validation must pass **before** assembly (hard gate):
 If any rule fails → report the mismatch and stop; do not emit a half-valid deliverable.
 
 Need a `.docx` instead of Markdown (client wants a Word document, diagrams as images, headings
-following their own template)? See `references/word-export.md` + `assets/word-export/` — a
-docxtpl + mermaid-cli pipeline that renders `design/system-design-document.md` into a Word file.
+following their own template, per-screen behavior specs with embedded screenshots)? See
+`references/word-export.md` + `assets/word-export/` — a docxtpl + mermaid-cli pipeline that
+renders `design/system-design-document.md` into a Word file, with an optional `--screens
+screens.json` for human-authored screen/process spec tables + screenshot images.
 
 **Brownfield chain** (existing codebase, redevelopment spec needed): `codebase-analysis.md` reverse
 mode → `/deliver-docs` → the word-export pipeline above, in that order. Reverse mode never invents
@@ -138,7 +145,7 @@ scenario-discovery to backfill; do not skip that step to make `/deliver-docs` pa
 - [ ] Every entity in the ER appears in the Data Dictionary and vice-versa (no orphans)
 - [ ] Every FK type matches the PK it references
 - [ ] Use cases trace to a scenario `goal`; postconditions remain measurable
-- [ ] No screen/page design was produced here (sitemap nodes only — pages belong to ui-mockup)
+- [ ] No screen/page design was produced here (sitemap nodes only — pages belong to screen-binding)
 - [ ] `business{}` and `analysis{}` of every scenario are unchanged; no `locked` scenario design clobbered
 - [ ] scenarios.json still parses; `traces_down` refs point at artifacts that actually exist under `design/`
 - [ ] `/deliver-docs` only: all four cross-validation rules pass before assembly
@@ -150,7 +157,7 @@ Return a light pointer to the orchestrator (artifact pattern — do not dump fil
 phase: 2-planning
 artifact: ./design/ (+ registry), scenarios.json#traces_down updated
 produced: <N> entities, <N> use cases, <N> APIs, sitemap for <N> has_ui scenarios
-next: delegate ui-mockup for has_ui scenarios (consumes sitemap + entities),
+next: delegate screen-binding for has_ui scenarios (consumes sitemap + entities),
       then solution-arch to compose features
 ```
 

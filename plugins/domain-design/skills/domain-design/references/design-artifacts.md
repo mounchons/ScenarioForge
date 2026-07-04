@@ -36,7 +36,7 @@ Each entity records identity, attributes (mirrored in the Data Dictionary), and 
 Rule: every attribute here MUST appear as a Data Dictionary row, and vice-versa (ER↔DD bidirectional).
 
 ## Data Dictionary (the bridge — keep it exact)
-Markdown table, one row per field across all entities. This is the contract ui-mockup / implement / qa read.
+Markdown table, one row per field across all entities. This is the contract screen-binding / implement / qa read.
 
 | Entity | Field | Type | Null | Key | Constraint | Description | scenario_ref |
 |--------|-------|------|------|-----|------------|-------------|--------------|
@@ -85,7 +85,7 @@ Hard rules:
   "children": []
 }
 ```
-ui-mockup consumes these nodes and attaches `PG-*` page artifacts + the same `scenario_ref`.
+screen-binding consumes these nodes and attaches `PG-*` page artifacts + the same `scenario_ref`.
 
 ## Writing back to scenarios.json (traces_down)
 After producing the above, update each scenario:
@@ -94,7 +94,7 @@ After producing the above, update each scenario:
   "entities": ["Invoice", "Payment"],
   "use_cases": ["UC-billing-001"],
   "apis": ["POST /api/payments"]
-  // pages: left for ui-mockup; features: left for solution-arch/implement
+  // pages: left for screen-binding; features: left for solution-arch/implement
 }
 ```
 Preserve all other scenario fields exactly. Never touch a `locked` scenario's design.

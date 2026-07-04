@@ -17,17 +17,26 @@ What it does, section by section (see references/word-export.md for the full rat
   - Database Normalization (Table 9): {%tr %} row-loop, one row per entity, defaulted to
     "New" + 1NF/2NF/3NF checked (methodological inference from domain-design's own modeling
     rules, NOT invented business fact) -- BCNF left unchecked, Remark left blank.
-  - Everything else (Screen/Process/Document/Job function-spec tables, all NON-FUNCTIONAL
-    infra tables: Server/DB-env/API-env/Security/Performance/Reliability): domain-design does
-    not produce this data (infra detail, or -- for Screen -- ui-mockup's own territory), so
-    these are left as static tables with the stale literal {{xxx}}/{{Low, Medium, High}}/
-    {{number}} placeholders stripped out (so they don't break Jinja parsing) but the row/column
-    structure intact, ready for a human to fill in by hand.
+  - Screen group (Heading3 + spec table + screenshot slot) and Process group (Heading3 + spec
+    table): wrapped in {% for screen in screens %} / {% for process in processes %} loops, one
+    block per entry from the renderer's --screens JSON, with a screenshot image slot after each
+    screen's spec table. The spec text (Input/Output/Validation/Message/...) is human-authored
+    content supplied via that JSON -- ScenarioForge does not fabricate it; without --screens the
+    renderer passes one blank entry so the document keeps the original fill-by-hand blank table.
+    NOTE: the Name..Remark value rows in these tables are ONE merged cell spanning columns 1-3
+    (cells[1] is cells[2] is cells[3]) -- assign the tag to cells[1] only; writing cells[2]/[3]
+    afterwards would overwrite it.
+  - Everything else (Document/Job function-spec tables, all NON-FUNCTIONAL infra tables:
+    Server/DB-env/API-env/Security/Performance/Reliability): domain-design does not produce
+    this data (infra detail), so these are left as static tables with the stale literal
+    {{xxx}}/{{Low, Medium, High}}/{{number}} placeholders stripped out (so they don't break
+    Jinja parsing) but the row/column structure intact, ready for a human to fill in by hand.
 """
 import re
 from pathlib import Path
 
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
@@ -155,6 +164,48 @@ def main():
     next_blank_paragraph(seq_heading).text = "{{ s_sequence_diagram_img }}"
     next_blank_paragraph(er_heading).text = "{{ s_er_diagram_img }}"
 
+    # ---------- Screen group: whole-group loop per screen + screenshot slot ----------
+    # Value rows (Name..Remark) are ONE merged cell across cols 1-3 -- write cells[1] only.
+    screen_h3 = find_paragraph(doc, "Screen1", style="Heading 3")
+    t4 = doc.tables[4]
+    assert t4.rows[0].cells[1].text.strip().startswith("F_SCR_"), t4.rows[0].cells[1].text
+    screen_h3.insert_paragraph_before("{% for screen in screens %}")
+    screen_h3.text = "{{ screen.title }}"
+    t4.rows[0].cells[1].text = "{{ screen.id }}"
+    t4.rows[0].cells[3].text = "{{ screen.ref }}"
+    t4.rows[1].cells[1].text = "{{ screen.severity }}"
+    t4.rows[1].cells[3].text = "{{ screen.priority }}"
+    screen_value_rows = [
+        (2, "name"), (3, "description"), (4, "input"), (5, "output"),
+        (6, "feature"), (7, "validation"), (8, "message"), (9, "security"), (10, "remark"),
+    ]
+    for ri, key in screen_value_rows:
+        t4.rows[ri].cells[1].text = "{{ screen.%s }}" % key
+    shot_p = next_blank_paragraph(screen_h3)  # the blank paragraph right after Table 4
+    shot_p.text = "{{ screen.screenshot_img }}"
+    shot_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    process_h2 = find_paragraph(doc, "PROCESS", style="Heading 2")
+    process_h2.insert_paragraph_before("{% endfor %}")
+
+    # ---------- Process group: whole-group loop per process (no screenshot) ----------
+    process_h3 = find_paragraph(doc, "Process1", style="Heading 3")
+    t5 = doc.tables[5]
+    assert t5.rows[0].cells[1].text.strip().startswith("F_PRO_"), t5.rows[0].cells[1].text
+    process_h3.insert_paragraph_before("{% for process in processes %}")
+    process_h3.text = "{{ process.title }}"
+    t5.rows[0].cells[1].text = "{{ process.id }}"
+    t5.rows[0].cells[3].text = "{{ process.ref }}"
+    t5.rows[1].cells[1].text = "{{ process.severity }}"
+    t5.rows[1].cells[3].text = "{{ process.priority }}"
+    process_value_rows = [
+        (2, "name"), (3, "description"), (4, "input"), (5, "output"),
+        (6, "feature"), (7, "message"), (8, "security"), (9, "remark"),
+    ]
+    for ri, key in process_value_rows:
+        t5.rows[ri].cells[1].text = "{{ process.%s }}" % key
+    documents_h2 = find_paragraph(doc, "DOCUMENTS", style="Heading 2")
+    documents_h2.insert_paragraph_before("{% endfor %}")
+
     # ---------- Database Specification: whole-group loop per entity ----------
     dbspec_heading3 = find_paragraph(doc, "{{Table Name, View, Store Procedure, SQL Function}}", style="Heading 3")
     all_paragraphs = doc.paragraphs
@@ -198,7 +249,9 @@ def main():
     wrap_row_as_tr_loop(t9, 1, "{%tr for entity in entities %}")
 
     # ---------- Clean stale placeholders in non-derivable tables (structure kept, manual fill) ----------
-    for ti in (4, 5, 6, 7, 11, 12, 13, 14, 15):
+    # Tables 4 (Screen) and 5 (Process) are NOT in this list anymore -- they now hold real
+    # docxtpl tags from the loops above, which this cleaner would strip.
+    for ti in (6, 7, 11, 12, 13, 14, 15):
         clean_table_cells(doc.tables[ti], skip_rows=0)
     # cached ToC field result for the (now looped) Database Specification heading -- Word
     # regenerates this text from the real headings once the user updates the field, but the

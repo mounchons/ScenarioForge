@@ -6,16 +6,23 @@ table for a human to complete. See references/word-export.md for the full sectio
 rationale (what's auto-filled vs manual, and why).
 
 Usage:
-    python render_fda003_docx.py <path/design/system-design-document.md> <output.docx> --meta doc-meta.json
+    python render_fda003_docx.py <path/design/system-design-document.md> <output.docx> \
+        --meta doc-meta.json [--screens screens.json]
 
 Auto-filled: doc control, revision history, System/ER diagram images (+ Sequence Diagram if the
 markdown has one), Database Specification per entity (from the Data Dictionary, grouped by
 Entity), Database Normalization rows (one per entity).
 
-Left blank/manual (domain-design does not produce this data -- Screens are ui-mockup's own
-territory, Documents/Jobs have no ScenarioForge artifact, and all Server/DB-env/API-env/
-Security/Performance/Reliability tables need real infrastructure detail no design tool can
-invent): Screen/Process/Document/Job function-spec tables, all NON-FUNCTIONAL infra tables.
+Filled from --screens (human-authored content -- see sample/screens.json for the shape):
+Section 3.1 SCREEN gets one spec block per screens[] entry (Function No/Ref/Severity/Priority +
+Name/Description/Input/Output/Feature/Validation/Message/Security/Remark + an embedded
+screenshot image below the table); Section 3.2 PROCESS gets one block per processes[] entry
+(same minus Validation and screenshot). Without --screens each section keeps a single blank
+fill-by-hand block, exactly like the original template.
+
+Left blank/manual (no ScenarioForge artifact holds this data -- Documents/Jobs, and all
+Server/DB-env/API-env/Security/Performance/Reliability tables need real infrastructure detail
+no design tool can invent): Document/Job function-spec tables, all NON-FUNCTIONAL infra tables.
 """
 import argparse
 import json
@@ -32,6 +39,58 @@ from render_sdd_docx import (  # noqa: E402
 )
 
 TEMPLATE_PATH = Path(__file__).parent / "fda003_template.docx"
+
+
+SCREEN_KEYS = ["name", "description", "input", "output", "feature", "validation", "message", "security", "remark"]
+PROCESS_KEYS = ["name", "description", "input", "output", "feature", "message", "security", "remark"]
+
+
+def _spec_entry(raw, keys, id_prefix):
+    entry = {
+        "id": raw.get("id", id_prefix),
+        "ref": raw.get("ref", "BR_ID_"),
+        "title": raw.get("title", raw.get("id", "")),
+        "severity": raw.get("severity", ""),
+        "priority": raw.get("priority", ""),
+    }
+    for k in keys:
+        entry[k] = raw.get(k, "")
+    return entry
+
+
+def _blank_screen():
+    e = _spec_entry({}, SCREEN_KEYS, "F_SCR_")
+    e["title"] = "Screen1"
+    e["screenshot_img"] = ""
+    return e
+
+
+def _blank_process():
+    e = _spec_entry({}, PROCESS_KEYS, "F_PRO_")
+    e["title"] = "Process1"
+    return e
+
+
+def build_screens_ctx(tpl, screens_path, image_width_mm=140):
+    """Load screens.json -> (screens, processes) lists for the template loops. Screenshot
+    paths resolve relative to the JSON file; a missing file logs a warning and renders the
+    block without an image rather than failing the whole export."""
+    data = json.loads(screens_path.read_text(encoding="utf-8"))
+    base = screens_path.parent
+    screens = []
+    for s in data.get("screens", []):
+        entry = _spec_entry(s, SCREEN_KEYS, "F_SCR_")
+        entry["screenshot_img"] = ""
+        shot = s.get("screenshot", "")
+        if shot:
+            shot_path = (base / shot).resolve()
+            if shot_path.exists():
+                entry["screenshot_img"] = InlineImage(tpl, str(shot_path), width=Mm(image_width_mm))
+            else:
+                print(f"WARNING: screenshot not found, skipping image: {shot_path}")
+        screens.append(entry)
+    processes = [_spec_entry(p, PROCESS_KEYS, "F_PRO_") for p in data.get("processes", [])]
+    return screens, processes
 
 
 def group_dd_by_entity(dd_rows):
@@ -58,6 +117,8 @@ def main():
     ap.add_argument("output_docx", type=Path)
     ap.add_argument("--meta", type=Path, default=None,
                      help="JSON with client_company_name/project_code/project_name/revisions[]")
+    ap.add_argument("--screens", type=Path, default=None,
+                     help="JSON with screens[]/processes[] (spec text + screenshot paths) for sections 3.1/3.2")
     args = ap.parse_args()
 
     md_text = args.sdd_markdown.read_text(encoding="utf-8")
@@ -122,6 +183,17 @@ def main():
         entities = [{"name": "(no Data Dictionary rows found)", "fields": []}]
     ctx["entities"] = entities
 
+    # Screen / Process spec blocks <- --screens JSON (human-authored). Without it, one blank
+    # entry each keeps the original template's fill-by-hand look.
+    if args.screens and args.screens.exists():
+        ctx["screens"], ctx["processes"] = build_screens_ctx(tpl, args.screens)
+    else:
+        ctx["screens"], ctx["processes"] = [], []
+    if not ctx["screens"]:
+        ctx["screens"] = [_blank_screen()]
+    if not ctx["processes"]:
+        ctx["processes"] = [_blank_process()]
+
     tpl.render(ctx)
     args.output_docx.parent.mkdir(parents=True, exist_ok=True)
     tpl.save(str(args.output_docx))
@@ -129,9 +201,14 @@ def main():
     print(f"Auto-filled: doc control, revision history, {len(entities)} entities "
           f"(Database Specification + Normalization), diagrams "
           f"(system={bool(l0_png)}, sequence={bool(seq_png)}, er={bool(er_blocks)}).")
+    if args.screens and args.screens.exists():
+        shots = sum(1 for s in ctx["screens"] if s.get("screenshot_img"))
+        print(f"Screen specs: {len(ctx['screens'])} screens ({shots} with screenshots), "
+              f"{len(ctx['processes'])} processes (from {args.screens}).")
+    else:
+        print("Screen/Process specs: blank fill-by-hand blocks (no --screens given).")
     print("Manual-fill sections (unchanged from the real F-DA-003 template, structure kept): "
-          "Screen/Process/Document/Job specs, Server/DB-env/API-env/Security/Performance/"
-          "Reliability tables.")
+          "Document/Job specs, Server/DB-env/API-env/Security/Performance/Reliability tables.")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,68 @@
+{
+  "screens": [
+    {
+      "id": "F_SCR_001",
+      "ref": "SC-billing-001",
+      "title": "Checkout — ชำระ invoice ด้วยบัตรเครดิต",
+      "severity": "High",
+      "priority": "High",
+      "name": "Checkout",
+      "description": "หน้าจอชำระเงิน: subscriber เลือก invoice ที่ค้างชำระ ยืนยันบัตรที่ผูกไว้ แล้วกดชำระ ระบบตัดบัตรผ่าน Payment Gateway และออกใบเสร็จ",
+      "input": "InvoiceId (เลือกจากรายการ), PaymentMethodId (บัตรที่ผูกไว้)",
+      "output": "Payment record (succeeded/declined), ใบเสร็จส่งทาง email, invoice status → paid",
+      "feature": "แสดงยอด AmountDue, เลือกบัตร, ยืนยันก่อนตัดจริง, retry เมื่อ declined",
+      "validation": "invoice ต้อง status=draft และ AmountDue > 0; บัตรต้องยังไม่หมดอายุ; ห้ามชำระ invoice ซ้ำ",
+      "message": "สำเร็จ: \"ชำระเงินเรียบร้อย ใบเสร็จถูกส่งไปที่อีเมลของคุณ\" / ล้มเหลว: \"บัตรถูกปฏิเสธ กรุณาตรวจสอบบัตรหรือใช้บัตรอื่น\"",
+      "security": "เฉพาะ role subscriber เจ้าของ subscription; ไม่เก็บเลขบัตรในระบบ (token จาก gateway เท่านั้น)",
+      "remark": "อ้างอิง UC-billing-001; หน้าจอจริงดู mockups/pages/checkout",
+      "screenshot": "screenshots/checkout.png",
+      "screenshot_caption": "รูปที่ 1: หน้าจอ Checkout (mockup)",
+      "fields": [
+        { "field": "InvoiceId", "type": "uuid", "control": "dropdown (invoice ค้างชำระ)", "description": "invoice ที่จะชำระ" },
+        { "field": "PaymentMethodId", "type": "uuid", "control": "radio (บัตรที่ผูกไว้)", "description": "บัตรที่ใช้ตัด" },
+        { "field": "AmountDue", "type": "decimal(12,2)", "control": "label (read-only)", "description": "ยอดที่ต้องชำระ" }
+      ]
+    },
+    {
+      "id": "F_SCR_002",
+      "ref": "SC-billing-002",
+      "title": "Invoices — รายการใบแจ้งหนี้",
+      "severity": "Medium",
+      "priority": "High",
+      "name": "Invoice List",
+      "description": "หน้าจอรายการ invoice ของ subscriber: ค้นหา/กรองตามสถานะและช่วงวันที่ กดเข้าไปดูรายละเอียดหรือไปหน้า Checkout ได้",
+      "input": "คำค้นหา, Status filter (draft/paid/void), ช่วงวันที่",
+      "output": "ตารางรายการ invoice พร้อมสถานะและยอด",
+      "feature": "ค้นหา + filter + paging; ปุ่มลัดไปชำระเงินสำหรับ invoice ที่ค้าง",
+      "validation": "ช่วงวันที่ From ต้องไม่เกิน To",
+      "message": "ไม่พบข้อมูล: \"ไม่พบ invoice ตามเงื่อนไขที่เลือก\"",
+      "security": "subscriber เห็นเฉพาะ invoice ของตัวเอง; billing_admin เห็นทั้งหมด",
+      "remark": "อ้างอิง sitemap /billing/invoices",
+      "screenshot": "screenshots/invoices.png",
+      "screenshot_caption": "รูปที่ 2: หน้าจอรายการ Invoice (mockup)",
+      "fields": [
+        { "field": "SearchText", "type": "varchar(100)", "control": "textbox", "description": "ค้นหาจากเลข invoice" },
+        { "field": "Status", "type": "enum(draft,paid,void)", "control": "dropdown", "description": "กรองตามสถานะ" },
+        { "field": "DateFrom", "type": "date", "control": "datepicker", "description": "วันที่เริ่มต้น" },
+        { "field": "DateTo", "type": "date", "control": "datepicker", "description": "วันที่สิ้นสุด" }
+      ]
+    }
+  ],
+  "processes": [
+    {
+      "id": "F_PRO_001",
+      "ref": "SC-billing-003",
+      "title": "Monthly Invoice Generation (Batch)",
+      "severity": "High",
+      "priority": "High",
+      "name": "Generate Monthly Invoices",
+      "description": "batch process รันทุกต้นรอบบิล สร้าง invoice จาก subscription ที่ active ทั้งหมด",
+      "input": "Subscription ทั้งหมดที่ status=active ณ วันตัดรอบ",
+      "output": "Invoice ใหม่ (status=draft) หนึ่งใบต่อ subscription + แจ้งเตือน subscriber",
+      "feature": "idempotent — รันซ้ำในรอบเดียวกันไม่สร้าง invoice ซ้ำ",
+      "message": "log สรุปจำนวน invoice ที่สร้าง/ข้าม/ผิดพลาด ต่อรอบ",
+      "security": "รันโดย system scheduler เท่านั้น ไม่มี endpoint ให้เรียกตรง",
+      "remark": "อ้างอิง UC-billing-003"
+    }
+  ]
+}

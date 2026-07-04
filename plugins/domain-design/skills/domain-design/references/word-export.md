@@ -11,20 +11,70 @@ order all controlled by the template file, not by this script).
 
 ## Pieces (`assets/word-export/`)
 - `sdd_template.docx` — the docxtpl (Jinja2-in-docx) template. Cover page, revision history,
-  native Word TOC field, then the same 10 sections as `sdd-sections.md`, in order.
+  native Word TOC field, the same 10 sections as `sdd-sections.md` in order, plus an optional
+  Section 11 "Screen Specifications" that only renders when screen data is supplied (below).
 - `build_template.py` — regenerates `sdd_template.docx` from scratch (python-docx). Edit this
   when the template's layout/wording/section order needs to change; re-run it to rebuild.
 - `render_sdd_docx.py` — parses a `system-design-document.md`, renders every ` ```mermaid ` block
   to PNG via `npx @mermaid-js/mermaid-cli` (needs Node.js; no local install required), and fills
   the template with docxtpl. Usage:
   ```
-  python render_sdd_docx.py design/system-design-document.md out/SDD.docx --meta doc-meta.json
+  python render_sdd_docx.py design/system-design-document.md out/SDD.docx \
+      --meta doc-meta.json [--screens screens.json]
   ```
   `doc-meta.json` carries `project_name`, `client_name`, `doc_version`, `doc_date`, `author`,
   `revisions[]` — see `sample/doc-meta.json` for the shape.
 - `sample/` — a worked example (Billing/Invoice/Payment domain, matching the canonical example
-  used in `design-artifacts.md` + `mermaid-patterns.md`) with a pre-rendered `sample/output/`.
+  used in `design-artifacts.md` + `mermaid-patterns.md`) with a pre-rendered `sample/output/`,
+  plus `sample/screens.json` + `sample/screenshots/` exercising the screen-spec section.
   Run it to sanity-check the pipeline after any template change.
+
+## Screen specifications & screenshots (`--screens screens.json`)
+
+Client deliverables usually need per-screen behavior specs (what the screen does, inputs/
+outputs, validation rules, messages, security) with an embedded screenshot — content that is
+**human-authored**: ScenarioForge's artifacts hold the skeleton (sitemap page list, DD fields,
+use-case postconditions) but not the prose, and screenshots come from the mockups or the real
+app. So both renderers take an optional `--screens screens.json`:
+
+```jsonc
+{
+  "screens": [{
+    "id": "F_SCR_001",            // function/screen id, client-convention
+    "ref": "SC-billing-001",      // scenario / BR reference
+    "title": "Checkout — ชำระ invoice",   // block heading
+    "severity": "High", "priority": "High",
+    "name": "...", "description": "...", "input": "...", "output": "...",
+    "feature": "...", "validation": "...", "message": "...", "security": "...", "remark": "...",
+    "screenshot": "screenshots/checkout.png",     // relative to screens.json; optional
+    "screenshot_caption": "รูปที่ 1: ...",        // generic template only
+    "fields": [                                    // per-screen field table (generic template only)
+      { "field": "InvoiceId", "type": "uuid", "control": "dropdown", "description": "..." }
+    ]
+  }],
+  "processes": [{                  // fda003 only (Section 3.2 PROCESS) — same keys minus
+    "id": "F_PRO_001", "...": "..."// validation/screenshot/fields
+  }]
+}
+```
+
+- **Generic template**: renders Section 11 — one block per screen: H2 title, description
+  paragraph, a label/value spec table, a fields table, the screenshot + caption. With no
+  `--screens` the entire section (heading included) is omitted via `{% if screens %}`.
+- **fda003**: fills the real template's Section 3.1 SCREEN / 3.2 PROCESS — one spec-table block
+  per entry, screenshot embedded under each screen's table. With no `--screens` each section
+  keeps one blank fill-by-hand block, so the template looks exactly like the untouched original.
+- A `screenshot` path that doesn't exist logs a warning and renders the block without an image —
+  a half-captured screen set never fails the whole export.
+- Practical workflow: have Claude scaffold `screens.json` from `design/sitemap.md` +
+  `design/data-dictionary.md` + the use cases (ids, titles, fields, validation candidates
+  pre-filled), then a human fills the behavioral prose and drops in screenshots (mockup renders
+  or real-app captures). Do not let the scaffold invent validation/security rules — leave
+  unknown cells empty for the reviewer.
+- fda003 merged-cell gotcha: the Name..Remark value rows in the Screen/Process tables are ONE
+  merged cell spanning columns 1-3 — `patch_fda003_template.py` writes `cells[1]` only; writing
+  `cells[2]`/`[3]` afterwards would overwrite it (python-docx returns the same `_tc` for all
+  three).
 
 ## Adapting to an actual client-provided Word template
 The template is a **generic** SDD layout, not any specific client's document. To match a real
@@ -88,15 +138,17 @@ ScenarioForge-authored one) instead of the generic `sdd_template.docx` above. Tw
   (a methodological inference from domain-design's own modeling rules, not an invented business
   fact) and leaves BCNF unchecked for manual review.
 
-**Left blank, structure intact, for a human to fill in** — domain-design does not produce this
-data at all: Screen / Process / Document / Job function-spec tables (Screens are `ui-mockup`'s
-own artifact, outside domain-design's boundary; Process/Document/Job have no ScenarioForge file
-to read from — see `design-artifacts.md`'s disk layout, there's no persisted use-case file), and
-every NON-FUNCTIONAL infra table (Server Detail, DB-env detail, API-env detail, Security,
-Performance, Reliability) — these need real server names/IPs/SLA numbers no design tool should
-invent. The stale literal `{{xxx}}` / `{{Low, Medium, High}}` / `{{number}}` markers that were in
-the original file are stripped out of these tables so they don't break Jinja parsing, but the
-row/column structure is untouched.
+**Filled from `--screens screens.json`** (human-authored content — see "Screen specifications &
+screenshots" above): Section 3.1 SCREEN and 3.2 PROCESS get one spec block per entry, with each
+screen's screenshot embedded under its table. Without `--screens` both sections keep a single
+blank fill-by-hand block, identical to the untouched original template.
+
+**Left blank, structure intact, for a human to fill in** — no ScenarioForge artifact holds this
+data: Document / Job function-spec tables, and every NON-FUNCTIONAL infra table (Server Detail,
+DB-env detail, API-env detail, Security, Performance, Reliability) — these need real server
+names/IPs/SLA numbers no design tool should invent. The stale literal `{{xxx}}` /
+`{{Low, Medium, High}}` / `{{number}}` markers that were in the original file are stripped out
+of these tables so they don't break Jinja parsing, but the row/column structure is untouched.
 
 ### The gotchas that bit this implementation (don't repeat them)
 - **`{%tr %}` consumes the *entire* `<w:tr>` it sits in.** The for/endfor markers must be their
