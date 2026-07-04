@@ -11,8 +11,10 @@
 //
 // Zero dependencies: node: builtins only. ES module. Node >= 18.
 
-import { writeFileSync, renameSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { writeFileSync, renameSync, readFileSync, statSync, existsSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { spawn } from 'node:child_process';
+import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -167,9 +169,172 @@ export function atomicWrite(file, doc) {
   renameSync(tmp, file);
 }
 
+// The viewer HTML is served from disk next to this module. It is read fresh on
+// every GET / (Task 4 authors it); until then that route 404s via ENOENT.
+const HERE = dirname(fileURLToPath(import.meta.url));
+const HTML_FILE = join(HERE, 'viewer.html');
+
+/**
+ * Send an object as a JSON response with the canonical content-type.
+ *
+ * @param {import('node:http').ServerResponse} res
+ * @param {number} status
+ * @param {object} body
+ * @returns {void}
+ */
+function sendJson(res, status, body) {
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify(body));
+}
+
+/**
+ * Build the viewer's HTTP server (not yet listening).
+ *
+ * Routes:
+ *   GET  /                → 200 text/html (contents of viewer.html)
+ *   GET  /api/scenarios   → 200 { ok, mtimeMs, data } | 404 missing | 422 bad JSON
+ *   POST /api/action      → 409 stale mtime | applyAction status on failure |
+ *                           200 { ok, mtimeMs, data } on success (atomic write)
+ *   anything else         → 404
+ *
+ * The file backing `/api/scenarios` and `/api/action` is read fresh on every
+ * request — never cached — because agents may edit it concurrently.
+ *
+ * @param {string} file  path to the scenarios JSON document
+ * @returns {import('node:http').Server}
+ */
+export function createViewerServer(file) {
+  return createServer((req, res) => {
+    try {
+      const { pathname } = new URL(req.url, 'http://127.0.0.1');
+
+      if (req.method === 'GET' && pathname === '/') {
+        // Read viewer.html at request time. Missing → 404 (Task 4 adds it).
+        try {
+          const html = readFileSync(HTML_FILE);
+          res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+          res.end(html);
+        } catch (err) {
+          if (err.code === 'ENOENT') {
+            res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+            res.end('viewer.html not found');
+          } else {
+            sendJson(res, 500, { ok: false, error: err.message });
+          }
+        }
+        return;
+      }
+
+      if (req.method === 'GET' && pathname === '/api/scenarios') {
+        // Read the file fresh; ENOENT → 404. Keep this try/catch separate from
+        // JSON parsing so a parse error can never reach the ENOENT branch.
+        let mtimeMs, raw;
+        try {
+          mtimeMs = statSync(file).mtimeMs;
+          raw = readFileSync(file, 'utf8');
+        } catch (err) {
+          if (err.code === 'ENOENT') {
+            sendJson(res, 404, { ok: false, error: `file not found: ${file}` });
+          } else {
+            sendJson(res, 500, { ok: false, error: err.message });
+          }
+          return;
+        }
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch (err) {
+          sendJson(res, 422, { ok: false, error: `invalid JSON: ${err.message}` });
+          return;
+        }
+        sendJson(res, 200, { ok: true, mtimeMs, data });
+        return;
+      }
+
+      if (req.method === 'POST' && pathname === '/api/action') {
+        const chunks = [];
+        req.on('data', c => chunks.push(c));
+        req.on('end', () => {
+          // The outer try/catch cannot see errors thrown in this async
+          // callback, so it needs its own. Map ENOENT → 404, anything else
+          // (bad body JSON, write failures, …) → 500.
+          try {
+            const action = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+
+            // Optimistic-concurrency gate: reject before any mutation if the
+            // caller's token no longer matches the file on disk.
+            const current = statSync(file).mtimeMs;
+            if (action.mtimeMs !== current) {
+              sendJson(res, 409, { ok: false, error: 'file changed on disk; reload before retrying' });
+              return;
+            }
+
+            const doc = JSON.parse(readFileSync(file, 'utf8'));
+            const result = applyAction(doc, { type: action.type, payload: action.payload });
+            if (!result.ok) {
+              sendJson(res, result.status, { ok: false, error: result.error });
+              return;
+            }
+
+            atomicWrite(file, doc);
+            sendJson(res, 200, { ok: true, mtimeMs: statSync(file).mtimeMs, data: doc });
+          } catch (err) {
+            if (err.code === 'ENOENT') {
+              sendJson(res, 404, { ok: false, error: `file not found: ${file}` });
+            } else {
+              sendJson(res, 500, { ok: false, error: err.message });
+            }
+          }
+        });
+        return;
+      }
+
+      sendJson(res, 404, { ok: false, error: 'not found' });
+    } catch (err) {
+      sendJson(res, 500, { ok: false, error: err.message });
+    }
+  });
+}
+
+/**
+ * Open a URL in the platform's default browser, detached from this process.
+ *
+ * @param {string} url
+ * @returns {void}
+ */
+function openBrowser(url) {
+  let cmd, cmdArgs;
+  if (process.platform === 'win32') {
+    cmd = 'cmd';
+    cmdArgs = ['/c', 'start', '""', url];
+  } else if (process.platform === 'darwin') {
+    cmd = 'open';
+    cmdArgs = [url];
+  } else {
+    cmd = 'xdg-open';
+    cmdArgs = [url];
+  }
+  const child = spawn(cmd, cmdArgs, { detached: true, stdio: 'ignore' });
+  child.unref();
+}
+
 // Main-guard: only run CLI behaviour when this file is the entry point, never
-// on import. Task 3 replaces this block with real HTTP server wiring.
+// on import (importing this module must never start a server).
 if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
-  parseArgs(process.argv.slice(2));
-  process.stderr.write('scenarioforge viewer: HTTP server is wired up in a later task\n');
+  const args = parseArgs(process.argv.slice(2));
+
+  if (!args.file || !existsSync(args.file)) {
+    process.stderr.write(
+      'usage: node server.mjs --file <scenarios.json> [--port <n>] [--open]\n'
+    );
+    process.exit(1);
+  }
+
+  const server = createViewerServer(args.file);
+  server.listen(args.port, '127.0.0.1', () => {
+    const { port } = server.address();
+    const url = `http://127.0.0.1:${port}/`;
+    process.stdout.write(`ScenarioForge viewer: ${url}\n`);
+    if (args.open) openBrowser(url);
+  });
 }
