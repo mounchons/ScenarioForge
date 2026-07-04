@@ -5,7 +5,8 @@ import { mkdtempSync, copyFileSync, readFileSync, writeFileSync, readdirSync } f
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseArgs, recomputeRollup, applyAction, atomicWrite, createViewerServer } from './server.mjs';
+import { execFileSync } from 'node:child_process';
+import { parseArgs, recomputeRollup, applyAction, atomicWrite, createViewerServer, makeSnapshot } from './server.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURE = join(__dirname, 'fixtures', 'scenarios.sample.json');
@@ -222,4 +223,29 @@ test('viewer.html keeps every /api/ reference inside LIVE-ONLY blocks', () => {
 test('viewer.html references no external URLs', () => {
   const viewer = readFileSync(join(__dirname, 'viewer.html'), 'utf8');
   assert.ok(!/\b(src|href)\s*=\s*["']https?:/i.test(viewer), 'external resource reference found');
+});
+
+test('makeSnapshot embeds data and strips all live-only code', () => {
+  const viewer = readFileSync(join(__dirname, 'viewer.html'), 'utf8');
+  const out = makeSnapshot(viewer, loadFixture());
+  assert.ok(!out.includes('LIVE-ONLY'));
+  assert.ok(!out.includes('/api/'));
+  assert.ok(out.includes('SC-demo-001'));
+  assert.ok(out.includes('<script id="sf-data" type="application/json">'));
+});
+
+test('makeSnapshot escapes < so data cannot break out of the script tag', () => {
+  const viewer = readFileSync(join(__dirname, 'viewer.html'), 'utf8');
+  const doc = loadFixture();
+  doc.scenarios[0].title = 'x</script><script>alert(1)</script>';
+  const out = makeSnapshot(viewer, doc);
+  assert.ok(!out.includes('</script><script>alert(1)</script>'));
+});
+
+test('--snapshot CLI writes scenarios-report.html next to the source file', () => {
+  const file = tempCopy();
+  execFileSync(process.execPath, [join(__dirname, 'server.mjs'), '--file', file, '--snapshot']);
+  const out = readFileSync(join(dirname(file), 'scenarios-report.html'), 'utf8');
+  assert.ok(out.includes('SC-demo-001'));
+  assert.ok(!out.includes('LIVE-ONLY'));
 });

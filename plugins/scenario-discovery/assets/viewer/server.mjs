@@ -169,6 +169,31 @@ export function atomicWrite(file, doc) {
   renameSync(tmp, file);
 }
 
+/**
+ * Build a standalone, read-only snapshot of the viewer from viewer.html + doc.
+ *
+ * Three moves, all load-bearing:
+ *   1. Structurally strip every <!--LIVE-ONLY-START-->…<!--LIVE-ONLY-END--> block
+ *      so the result carries no network code at all — read-only by construction,
+ *      not by a runtime flag.
+ *   2. Escape every `<` in the embedded JSON as < so the data can never break
+ *      out of the surrounding </script> tag (JSON.parse restores it on load).
+ *   3. Inject the JSON into the empty #sf-data placeholder; boot() then renders it
+ *      with live:false, so no decision buttons or validate checkbox are emitted.
+ *
+ * @param {string} viewerHtml  the contents of viewer.html
+ * @param {object} doc         the scenarios document to embed
+ * @returns {string} a self-contained HTML document
+ */
+export function makeSnapshot(viewerHtml, doc) {
+  const stripped = viewerHtml.replace(/<!--LIVE-ONLY-START-->[\s\S]*?<!--LIVE-ONLY-END-->/g, '');
+  const json = JSON.stringify(doc).replace(/</g, '\\u003c');
+  return stripped.replace(
+    '<script id="sf-data" type="application/json"></script>',
+    `<script id="sf-data" type="application/json">${json}</script>`
+  );
+}
+
 // The viewer HTML is served from disk next to this module. It is read fresh on
 // every GET / (Task 4 authors it); until then that route 404s via ENOENT.
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -325,16 +350,32 @@ if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
 
   if (!args.file || !existsSync(args.file)) {
     process.stderr.write(
-      'usage: node server.mjs --file <scenarios.json> [--port <n>] [--open]\n'
+      'usage: node server.mjs --file <scenarios.json> [--port <n>] [--open] [--snapshot]\n'
     );
     process.exit(1);
   }
 
-  const server = createViewerServer(args.file);
-  server.listen(args.port, '127.0.0.1', () => {
-    const { port } = server.address();
-    const url = `http://127.0.0.1:${port}/`;
-    process.stdout.write(`ScenarioForge viewer: ${url}\n`);
-    if (args.open) openBrowser(url);
-  });
+  if (args.snapshot) {
+    // Snapshot mode: parse the doc, render a standalone read-only HTML report
+    // next to the source file, then exit — never start a server.
+    let doc;
+    try {
+      doc = JSON.parse(readFileSync(args.file, 'utf8'));
+    } catch (err) {
+      process.stderr.write(`failed to parse ${args.file}: ${err.message}\n`);
+      process.exit(1);
+    }
+    const viewerHtml = readFileSync(HTML_FILE, 'utf8');
+    const outPath = join(dirname(args.file), 'scenarios-report.html');
+    writeFileSync(outPath, makeSnapshot(viewerHtml, doc));
+    process.stdout.write(`${outPath}\n`);
+  } else {
+    const server = createViewerServer(args.file);
+    server.listen(args.port, '127.0.0.1', () => {
+      const { port } = server.address();
+      const url = `http://127.0.0.1:${port}/`;
+      process.stdout.write(`ScenarioForge viewer: ${url}\n`);
+      if (args.open) openBrowser(url);
+    });
+  }
 }
