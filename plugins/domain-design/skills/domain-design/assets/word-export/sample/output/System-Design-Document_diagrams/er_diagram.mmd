@@ -1,0 +1,14 @@
+erDiagram
+    SUBSCRIPTION ||--o{ INVOICE : has
+    INVOICE ||--o{ PAYMENT : receives
+    INVOICE {
+        uuid InvoiceId PK
+        uuid SubscriptionId FK
+        string Status
+        decimal AmountDue
+    }
+    PAYMENT {
+        uuid PaymentId PK
+        uuid InvoiceId FK
+        string Status
+    }

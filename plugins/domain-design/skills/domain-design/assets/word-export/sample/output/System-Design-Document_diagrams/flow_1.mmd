@@ -1,0 +1,7 @@
+flowchart TD
+    A[Start: invoice due] --> B{Card on file?}
+    B -- no --> C[Prompt add card] --> D
+    B -- yes --> D[Charge card]
+    D --> E{Charge ok?}
+    E -- yes --> F[invoice=paid; send receipt]
+    E -- no --> G[mark declined; notify]

@@ -1,0 +1,4 @@
+flowchart LR
+    subscriber([Subscriber]) -->|payment request| P0((Billing System))
+    P0 -->|receipt| subscriber
+    P0 <-->|charge| gateway([Payment Gateway])

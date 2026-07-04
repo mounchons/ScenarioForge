@@ -123,6 +123,10 @@ Cross-validation must pass **before** assembly (hard gate):
 - FK type matches referenced PK type
 If any rule fails → report the mismatch and stop; do not emit a half-valid deliverable.
 
+Need a `.docx` instead of Markdown (client wants a Word document, diagrams as images, headings
+following their own template)? See `references/word-export.md` + `assets/word-export/` — a
+docxtpl + mermaid-cli pipeline that renders `design/system-design-document.md` into a Word file.
+
 ## Self-Check (mandatory before returning work)
 
 - [ ] Every planned scenario has non-empty `traces_down.entities` (and `use_cases`/`apis` where applicable)

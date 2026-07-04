@@ -1,0 +1,8 @@
+flowchart TD
+    A[Invoice declined] --> B[Notify subscriber]
+    B --> C{Subscriber updates card?}
+    C -- yes --> D[Retry charge]
+    C -- no --> E[Escalate to collections after 7 days]
+    D --> F{Charge ok?}
+    F -- yes --> G[invoice=paid; send receipt]
+    F -- no --> B
