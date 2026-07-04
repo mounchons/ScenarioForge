@@ -127,6 +127,11 @@ Need a `.docx` instead of Markdown (client wants a Word document, diagrams as im
 following their own template)? See `references/word-export.md` + `assets/word-export/` — a
 docxtpl + mermaid-cli pipeline that renders `design/system-design-document.md` into a Word file.
 
+**Brownfield chain** (existing codebase, redevelopment spec needed): `codebase-analysis.md` reverse
+mode → `/deliver-docs` → the word-export pipeline above, in that order. Reverse mode never invents
+`business{}` for code it can't trace to a scenario — it flags the gap in `reverse-notes.md` for
+scenario-discovery to backfill; do not skip that step to make `/deliver-docs` pass.
+
 ## Self-Check (mandatory before returning work)
 
 - [ ] Every planned scenario has non-empty `traces_down.entities` (and `use_cases`/`apis` where applicable)

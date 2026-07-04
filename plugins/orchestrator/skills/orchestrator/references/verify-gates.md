@@ -20,6 +20,26 @@ phase depends on. The gate reads the handoff block + the named artifact's `rollu
 The gate never *fixes* anything itself — it stops the line and routes the fix. The orchestrator writing a
 missing entity to make Gate 2 pass would be the exact boundary violation the whole design forbids.
 
+## Gate 0-reverse — after Phase 0 (domain-design, reverse mode) — brownfield bootstrap only
+
+Only runs when Phase 0 was planned (see `references/phase-sequence.md` → "Phase 0"). The next phase
+(scenario-discovery, seeded from `reverse-notes.md`) needs a real candidate list to confirm with the user.
+- [ ] `design/` (+ registry) exists and was produced from the given codebase path — the handoff's
+      `artifact` points at it.
+- [ ] `reverse-notes.md` exists and lists a candidate (title/actor/goal inferred from code, marked
+      `needs_user_confirmation`) for every extracted entity/route/API with no matching scenario. On a
+      fresh bootstrap this is normally *every* extracted artifact, since nothing has a scenario yet.
+- [ ] No `scenarios.json` was created by this phase — that file must not exist yet after Phase 0 (creating
+      it is scenario-discovery's job in Phase 1, even for a bootstrap run).
+- [ ] DD types trace to real migrations/schema, not guesses (same rule as a normal reverse-engineer pass).
+
+FAIL (worker shortfall) — e.g. entities extracted but `reverse-notes.md` missing/incomplete → re-delegate
+Phase 0 once with the gap named.
+FAIL (refused-to-invent / upstream problem) — the codebase path doesn't exist, isn't readable, or isn't a
+stack `codebase-analysis.md` supports (its hardened path today is ASP.NET Core + EF Core) → **do not
+retry**; surface this to the user. A second delegation can't fix an unreadable path or an unsupported
+stack — that is a precondition problem, not a worker mistake.
+
 ## Gate 1 — after Phase 1 (scenario-discovery + critic loop)
 
 The next phase (domain-design) needs scenarios with real business intent and a converged analysis layer.
@@ -37,6 +57,9 @@ Check, for the in-scope ids:
       ledger — QUICK always skips; a registry may disable it for a scale). Individually **skipped
       personas** (missing key, provider outage) are soft — noted in the panel handoff, never a gate
       failure.
+- [ ] **After a Phase 0 bootstrap only:** the resulting scenarios were user-confirmed, not the
+      `reverse-notes.md` candidate text copied straight through — the handoff should show actor/goal
+      that reflect an actual answer, not the code-inferred placeholder verbatim on every candidate.
 - [ ] No single scenario mixes multiple goals (discovery should have split them).
 
 FAIL here is usually "critic loop not converged" (re-delegate the critic) or "user hasn't supplied a
@@ -52,6 +75,8 @@ The next phases (screen-binding, solution-arch) need a domain model bound to the
 - [ ] `business{}` / `analysis{}` unchanged vs before the phase (the worker must not have edited them).
 - [ ] ENTERPRISE only: cross-validation passed (ER↔DD bidirectional, FK type match) — required before
       `/deliver-docs` and before solutioning a regulated/large domain.
+- [ ] **After a Phase 0 bootstrap only:** this was an UPDATE pass (design/ already existed) — check the
+      worker attached `traces_down` to the Phase 0 artifacts rather than re-extracting/duplicating them.
 - [ ] A scenario the worker could not model because a `domain_concept` was missing → that's a **gap** in
       its notes, surfaced to the user (Phase 1 must add the concept), not a domain-design retry.
 

@@ -40,12 +40,38 @@ The orchestrator routes from this table. "Reads" → context_refs; "Writes" → 
 boundaries. Every worker also shares the universal boundaries (gap don't invent; don't touch locked
 meaning; don't spawn a worker) and reads `meta.effort_scale`.
 
+### Phase 0 — domain-design, reverse mode (Tier 1) — brownfield bootstrap only
+
+Only planned when `scenarios.json` is absent **and** the target is an existing codebase (see
+`references/phase-sequence.md` → "Phase 0 — Bootstrap"). Same worker as Phase 2, different mode and a
+narrower contract — there is no spine yet, so nothing can be attached to it.
+
+- **objective seed:** reverse-engineer the codebase at `<path>` into design artifacts — entities, Data
+  Dictionary, API contracts, sitemap — per `codebase-analysis.md`. No `scenarios.json` exists yet; do not
+  attempt to write `traces_down` (there is nothing to attach to). Record every extracted artifact that has
+  no matching scenario in `reverse-notes.md` as a candidate for Phase 1 to confirm.
+- **reads:** the codebase at the given path (models/entities, controllers, services, routes, config —
+  see codebase-analysis.md's layer→artifact map).
+- **writes:** `design/` (+ registry) — same shape as a forward design — plus `reverse-notes.md` (candidate
+  scenario title/actor/goal inferred from code structure, each marked `needs_user_confirmation`).
+- **does NOT:** create `scenarios.json` or write any `business{}` (still scenario-discovery's job, even
+  here — a route existing is not confirmed business intent); fabricate a scenario_ref where none exists;
+  skip validating DD types against migrations/schema; spawn a worker.
+- **command:** none (implicit skill invoke — "reverse-engineer the codebase at `<path>`...", same trigger
+  phrasing as a direct call, just delegated).
+- **on gate PASS:** Phase 1 runs next, seeded from `reverse-notes.md` instead of raw user requirements.
+
 ### Phase 1 — scenario-discovery (Tier 1)
-- **objective seed:** turn the user's requirements into / append to the scenario spine.
-- **reads:** user requirements (speech or a document path); existing `scenarios.json` if APPEND.
+- **objective seed:** turn the user's requirements into / append to the scenario spine. **After a Phase 0
+  bootstrap:** seed from `reverse-notes.md`'s candidates instead — still *ask the user* to confirm/correct
+  each candidate's actor, goal, business value, and postconditions; a code-inferred title is a starting
+  point for the question, never an accepted answer (scenario-discovery's "business intent from the user
+  only" principle holds even when the candidate came from reverse-engineered code).
+- **reads:** user requirements (speech or a document path) — or, after Phase 0, `reverse-notes.md`;
+  existing `scenarios.json` if APPEND.
 - **writes:** `scenarios.json` — `business{}` + identity + empty `analysis{}` shell + `rollup`.
 - **does NOT:** write any `traces_down` design/code/test field; accept/reject an analysis suggestion;
-  design or implement anything.
+  design or implement anything; treat a Phase 0 candidate's inferred title/actor/goal as already confirmed.
 - **command:** none (implicit skill invoke, or explicit `/scenario-discovery:scenario-discovery`).
 - **panel beat (1.5):** after discovery, a persona-panel runner appends generative suggestions +
   open questions from registry personas (`.scenarioforge/personas.json`; external AI providers
@@ -57,8 +83,14 @@ meaning; don't spawn a worker) and reads `meta.effort_scale`.
 
 ### Phase 2 — domain-design (Tier 1)
 - **objective seed:** model the domain for the in-scope scenarios (entities, DD, use cases, APIs, sitemap).
-- **reads:** `scenarios.json` (`business{}` + `domain_concepts[]`); optionally an existing codebase to
-  reverse-engineer.
+  **After a Phase 0 bootstrap:** `design/` already exists — this is an UPDATE pass; attach
+  `traces_down.entities/use_cases/apis` for the newly-confirmed scenarios to the artifacts Phase 0 already
+  extracted. Do not re-read the codebase a second time.
+- **reads:** `scenarios.json` (`business{}` + `domain_concepts[]`); after Phase 0, also the `design/`
+  it already produced. (A **direct**, non-bootstrapped call to domain-design can also take an existing
+  codebase to reverse-engineer in one shot when `scenarios.json` already exists — that path bypasses
+  Phase 0 entirely since there's already a spine to attach to; Phase 0 exists specifically for the case
+  where there is no spine yet.)
 - **writes:** `design/` (+ registry) and each scenario's `traces_down.entities / use_cases / apis`.
 - **does NOT:** write `business{}` or `traces_down.pages` (screen-binding) or `traces_down.features`
   (solution-arch); decide suggestion acceptance; write code/tests.
@@ -129,3 +161,24 @@ context_refs:  scenarios.json#SC-billing-001..003 ; (no design/ yet — CREATE m
 
 The orchestrator then waits for domain-design's handoff and runs Gate 2 (verify-gates) before delegating
 solution-arch.
+
+## Example filled contract (Phase 0, brownfield bootstrap)
+
+```
+worker: domain-design (reverse mode)
+objective:     Reverse-engineer D:\GitHub\LegacyApp into design artifacts — entities, Data Dictionary,
+               API contracts, sitemap — per codebase-analysis.md. No scenarios.json exists yet: do
+               not write any traces_down. Record every extracted entity/route/API with no matching
+               scenario in reverse-notes.md as a needs_user_confirmation candidate (inferred title,
+               actor, goal from the code structure — not asserted as confirmed business intent).
+output_format: Write design/ (+ design/registry.json) and reverse-notes.md (candidate list for
+               Phase 1). Do not create scenarios.json — that file does not exist until Phase 1 writes it.
+boundaries:    Do not fabricate business{} or a scenario_ref for anything. Validate DD types against
+               real migrations/schema, not guesses. Flag code with no discoverable purpose as a gap,
+               don't invent one. Do not spawn a worker.
+context_refs:  codebase_path=D:\GitHub\LegacyApp ; no scenarios.json yet (bootstrap) ; scale=STANDARD
+```
+
+Gate 0-reverse (verify-gates) checks `design/` + `reverse-notes.md` exist and that no `scenarios.json` was
+created. On PASS, Phase 1 runs next — seeded from `reverse-notes.md`'s candidates instead of raw user
+requirements, but still asking the user to confirm each one (see the Phase 1 entry above).

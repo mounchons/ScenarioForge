@@ -93,14 +93,18 @@ fan-out is for independent investigations; this is not that.)
 
 | # | Phase | Worker | Consumes | Produces (artifact of record) |
 |---|---|---|---|---|
-| 1 | Analysis | scenario-discovery | user requirements | `scenarios.json` (business{} + spine) |
+| 0 | Bootstrap *(conditional)* | domain-design (reverse mode) | an existing codebase, no scenarios.json yet | `design/` + `reverse-notes.md` (candidates, no traces_down) |
+| 1 | Analysis | scenario-discovery | user requirements (or Phase 0's `reverse-notes.md`) | `scenarios.json` (business{} + spine) |
 | 2 | Planning | domain-design | scenarios business{} | `design/` (entities, DD, APIs, sitemap) + traces_down.entities/use_cases/apis |
 | 2u | Planning/UI | screen-binding | sitemap + entities (has_ui only) | `mockups/` (shell + pages) + traces_down.pages |
 | 3 | Solutioning | solution-arch | entities + apis + pages | `features.json` + traces_down.features |
 | 4 | Implementation | feature-builder | features.json + traces_up | source + UI control manifests + traces_down.features |
 | 4q | QA | scenario-verify | manifests + acceptance criteria | `qa-tracker.json` (TS-xxx) + traces_down.test_scenarios |
 
-Phase 2u runs only if any in-scope scenario has `business.has_ui == true`. Phase 1 also has analysis beats:
+Phase 0 runs only when `scenarios.json` is absent **and** the target is an existing codebase (brownfield
+bootstrap — see `references/phase-sequence.md` → "Phase 0"); a bare module/`SC-id` target with no spine
+still just stops and points to scenario-discovery, unchanged. Phase 2u runs only if any in-scope scenario
+has `business.has_ui == true`. Phase 1 also has analysis beats:
 an ideation panel (beat 1.5 — registry-driven personas, optionally on external AI providers) and a critic
 beat (beat 2) fill scenario-discovery's `analysis{}` and loop until `rollup.ready_for_next_phase`, before
 Phase 2 may start — that loop is gated, see `references/verify-gates.md`.
@@ -125,13 +129,23 @@ green before the next began**, the spine's `traces_down` is connected end to end
 a fresh session resume mid-pipeline without re-running finished phases. Working backward:
 
 ### Step 0 — Resume or start (read the spine + ledger first)
-- Glob/Read `scenarios.json`. Absent -> stop; tell the user to begin with scenario-discovery (Phase 1).
-  The orchestrator drives existing work; it does not fabricate a spine.
+- Glob/Read `scenarios.json`.
+  - **Present** → proceed normally (the checks below).
+  - **Absent, target is a module/`SC-id`, no codebase mentioned** → stop; tell the user to begin with
+    scenario-discovery (Phase 1). The orchestrator drives existing work; it does not fabricate a spine.
+  - **Absent, but the target is an existing codebase** (a directory/repo path, or the request explicitly
+    asks to reverse-engineer / analyze existing code) → this is a **brownfield bootstrap**. Plan Phase 0
+    (domain-design, reverse mode) first, then Phase 1 (scenario-discovery, seeded from the
+    `reverse-notes.md` Phase 0 produces), then continue the normal sequence from Phase 2. See
+    `references/phase-sequence.md` → "Phase 0 — Bootstrap" for the full trigger/contract/gate detail.
+    Do not skip straight to Phase 2 to "save a step" — Phase 1 still owes the user-confirmed `business{}`
+    that everything downstream depends on.
 - Read `.scenarioforge/run-ledger.json` if it exists. **Resume:** phases marked `done` (with a green gate)
   are skipped; a phase left `in_progress` or `gate_failed` is where the run re-enters. Never re-run a
   green phase. Absent -> fresh run; create the ledger (CREATE mode).
 - Read `meta.effort_scale`. If the user passed a scale flag, it overrides the file for this run (and is
-  recorded in the ledger); otherwise use the file's value.
+  recorded in the ledger); otherwise use the file's value. On a Phase 0 bootstrap, scale is not yet known
+  from a spine — take the flag, or default to STANDARD until Phase 1 sets `meta.effort_scale`.
 
 ### Step 1 — Plan the phase sequence (do not execute yet)
 - From the scale and the spine, compute the ordered phase list per `references/phase-sequence.md`
@@ -186,6 +200,7 @@ For the next `pending` phase in the plan:
 ## Self-Check (mandatory before returning work)
 
 - [ ] Phases ran in dependency order; no two phases delegated at once; Phase N+1 started only after Phase N's gate was green
+- [ ] Phase 0 (bootstrap) ran iff scenarios.json was absent AND the target was an existing codebase — never triggered on a bare missing-spine module/SC-id target, never skipped straight to Phase 2 after it ran
 - [ ] Phase 2u (screen-binding) ran iff an in-scope scenario has `has_ui == true`; skipped phases were skipped per scale, not silently dropped from a scale that needed them
 - [ ] Every delegation used the full 4-part contract (objective / output_format / boundaries / context_refs); context was passed as pointers, never file contents
 - [ ] No artifact was written or edited by the orchestrator — only `.scenarioforge/run-ledger.json`
@@ -204,6 +219,7 @@ higher coordinator). Keep it a light pointer set, never a file dump:
 run: <module / scope> @ <QUICK|STANDARD|ENTERPRISE>
 plan: <ordered phases that ran> (skipped: <phases the scale skipped>)
 phases:
+  0-reverse         gate: PASS  -> design/ + reverse-notes.md (<N> candidates)   [only on a brownfield bootstrap]
   1-analysis        gate: PASS  -> scenarios.json (<N> scenarios ready)
   2-planning        gate: PASS  -> design/ (<N> entities, <N> apis)
   2-planning-ui     gate: PASS  -> mockups/ (shell + <N> pages)   [or: skipped — no has_ui]
