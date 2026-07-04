@@ -199,3 +199,27 @@ test('POST /api/action: valid decision persists to disk with recomputed rollup',
     assert.equal(body.mtimeMs, (await import('node:fs')).statSync(file).mtimeMs);
   });
 });
+
+test('GET / serves viewer.html with required element ids', async () => {
+  const file = tempCopy();
+  await withServer(file, async base => {
+    const res = await fetch(`${base}/`);
+    assert.equal(res.status, 200);
+    const html = await res.text();
+    for (const id of ['sf-data', 'sf-meta', 'sf-rollup', 'sf-filters', 'sf-search', 'sf-error', 'sf-cards']) {
+      assert.ok(html.includes(`id="${id}"`), `missing id ${id}`);
+    }
+  });
+});
+
+test('viewer.html keeps every /api/ reference inside LIVE-ONLY blocks', () => {
+  const viewer = readFileSync(join(__dirname, 'viewer.html'), 'utf8');
+  assert.ok(viewer.includes('<!--LIVE-ONLY-START-->') && viewer.includes('<!--LIVE-ONLY-END-->'));
+  const stripped = viewer.replace(/<!--LIVE-ONLY-START-->[\s\S]*?<!--LIVE-ONLY-END-->/g, '');
+  assert.ok(!stripped.includes('/api/'), 'found /api/ outside LIVE-ONLY blocks');
+});
+
+test('viewer.html references no external URLs', () => {
+  const viewer = readFileSync(join(__dirname, 'viewer.html'), 'utf8');
+  assert.ok(!/\b(src|href)\s*=\s*["']https?:/i.test(viewer), 'external resource reference found');
+});
