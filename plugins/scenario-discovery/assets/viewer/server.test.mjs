@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import http from 'node:http';
 import { parseArgs, recomputeRollup, applyAction, atomicWrite, createViewerServer, makeSnapshot } from './server.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -42,6 +43,15 @@ test('recomputeRollup: avg_completeness is null when no critic scores', () => {
   const doc = loadFixture();
   doc.scenarios.forEach(s => { s.analysis.completeness.score = null; });
   assert.equal(recomputeRollup(doc).avg_completeness, null);
+});
+
+test('recomputeRollup: avg_completeness is the raw (unrounded) mean of scores', () => {
+  // Two scores 0.72 + 0.55 → 1.27 / 2 = 0.635. The old 2dp rounding would have
+  // returned 0.64 (Math.round(63.5) = 64), so asserting exactly 0.635 pins the
+  // raw mean.
+  const doc = loadFixture();
+  doc.scenarios[1].analysis.completeness.score = 0.55;
+  assert.equal(recomputeRollup(doc).avg_completeness, 0.635);
 });
 
 test('recomputeRollup: empty scenarios → total 0, not ready', () => {
@@ -124,6 +134,22 @@ async function withServer(file, fn) {
   try { await fn(base); } finally { await new Promise(r => server.close(r)); }
 }
 
+// Raw HTTP request used where fetch/undici would strip or override the header we
+// need to control — notably the forbidden `Host` header. Always connects to the
+// loopback address; only the Host header is spoofed.
+function rawRequest({ port, path, method = 'GET', headers = {}, body = null }) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ hostname: '127.0.0.1', port, path, method, headers }, res => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode, text: Buffer.concat(chunks).toString('utf8') }));
+    });
+    req.on('error', reject);
+    if (body != null) req.write(body);
+    req.end();
+  });
+}
+
 test('GET /api/scenarios returns data and mtime token', async () => {
   const file = tempCopy();
   await withServer(file, async base => {
@@ -199,6 +225,45 @@ test('POST /api/action: valid decision persists to disk with recomputed rollup',
     assert.equal(onDisk.rollup.pending_suggestions, 0);
     assert.equal(body.mtimeMs, (await import('node:fs')).statSync(file).mtimeMs);
   });
+});
+
+test('POST /api/action: malformed JSON body → 400 (not 500) and file untouched', async () => {
+  const file = tempCopy();
+  const before = readFileSync(file, 'utf8');
+  await withServer(file, async base => {
+    const res = await fetch(`${base}/api/action`, { method: 'POST', body: '{ not json' });
+    assert.equal(res.status, 400);
+    assert.match((await res.json()).error, /invalid JSON body/);
+  });
+  assert.equal(readFileSync(file, 'utf8'), before);
+});
+
+test('POST /api/action: body over the size cap → 413 and file untouched', async () => {
+  const file = tempCopy();
+  const before = readFileSync(file, 'utf8');
+  await withServer(file, async base => {
+    // >1 MB payload: a single JSON string field padded past the cap.
+    const big = JSON.stringify({ type: 'set_human_validated', mtimeMs: 0, payload: { note: 'x'.repeat(1_000_001) } });
+    const res = await fetch(`${base}/api/action`, { method: 'POST', body: big });
+    assert.equal(res.status, 413);
+    assert.match((await res.json()).error, /payload too large/);
+  });
+  assert.equal(readFileSync(file, 'utf8'), before);
+});
+
+test('foreign Host header → 403 and file untouched (loopback Host still 200 via existing GET test)', async () => {
+  const file = tempCopy();
+  const before = readFileSync(file, 'utf8');
+  await withServer(file, async base => {
+    const port = Number(new URL(base).port);
+    // fetch/undici would drop a spoofed Host, so drive it with node:http.
+    const res = await rawRequest({ port, path: '/api/scenarios', headers: { host: 'evil.example.com' } });
+    assert.equal(res.status, 403);
+    assert.match(JSON.parse(res.text).error, /forbidden host/);
+  });
+  // The positive path (loopback Host → 200) is covered by
+  // 'GET /api/scenarios returns data and mtime token'.
+  assert.equal(readFileSync(file, 'utf8'), before);
 });
 
 test('GET / serves viewer.html with required element ids', async () => {

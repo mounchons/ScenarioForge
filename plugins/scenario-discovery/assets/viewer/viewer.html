@@ -502,7 +502,15 @@
           if (!res.ok) { loadOnce(); return null; } // file deleted/corrupted mid-session → surface the error
           return res.json();
         }).then(function (body) {
-          if (body && body.mtimeMs !== lastMtime) { lastMtime = body.mtimeMs; clearError(); render(body.data, { live: true }); }
+          if (body && body.mtimeMs !== lastMtime) {
+            // Don't clobber a half-typed suggestion note: if the user is typing
+            // in an input inside the cards, skip this tick WITHOUT advancing
+            // lastMtime, so the next tick (focus likely moved) still picks up
+            // the agent's edit instead of discarding what they were writing.
+            var ae = document.activeElement;
+            if (ae && ae.tagName === 'INPUT' && cards && cards.contains(ae)) return;
+            lastMtime = body.mtimeMs; clearError(); render(body.data, { live: true });
+          }
         }).catch(function () {});
       }, 2000);
       // The 2s poll is throttled while the tab is hidden (browsers clamp timers in

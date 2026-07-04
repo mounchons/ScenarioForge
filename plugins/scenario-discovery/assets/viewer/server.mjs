@@ -81,8 +81,10 @@ export function recomputeRollup(doc) {
     if (s?.provenance?.human_validated !== true) allValidated = false;
   }
 
+  // Raw arithmetic mean (no rounding) — the read-model carries full precision;
+  // any display rounding is the viewer's concern, not the rollup's.
   const avg_completeness = scores.length
-    ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100
+    ? scores.reduce((a, b) => a + b, 0) / scores.length
     : null;
 
   const rollup = {
@@ -215,6 +217,36 @@ function sendJson(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+// Loopback hosts this tool answers to. Anything else is refused (see below).
+const ALLOWED_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
+
+/**
+ * Whether the request's Host header names a loopback host we serve.
+ *
+ * DNS-rebinding guard: this tool writes files on POST, so it must answer only
+ * to requests whose Host is loopback — a page on evil.example.com resolving to
+ * 127.0.0.1 would otherwise reach us. The hostname is parsed out of the header
+ * (stripping any :port, and handling bracketed [::1] and bare ::1 IPv6). A
+ * missing Host is treated as forbidden. Match is case-insensitive.
+ *
+ * @param {string|undefined} hostHeader  the raw Host request header
+ * @returns {boolean}
+ */
+function isAllowedHost(hostHeader) {
+  if (!hostHeader) return false;
+  let host = hostHeader.trim();
+  if (host.startsWith('[')) {
+    // Bracketed IPv6, e.g. [::1] or [::1]:8080 → keep the bracketed form.
+    const end = host.indexOf(']');
+    if (end !== -1) host = host.slice(0, end + 1);
+  } else if ((host.match(/:/g) || []).length === 1) {
+    // Exactly one colon → host:port; strip the port. A bare IPv6 like ::1 has
+    // several colons and no brackets, so it is left intact.
+    host = host.slice(0, host.indexOf(':'));
+  }
+  return ALLOWED_HOSTS.has(host.toLowerCase());
+}
+
 /**
  * Build the viewer's HTTP server (not yet listening).
  *
@@ -234,6 +266,13 @@ function sendJson(res, status, body) {
 export function createViewerServer(file) {
   return createServer((req, res) => {
     try {
+      // DNS-rebinding guard: refuse any non-loopback Host before routing, since
+      // this tool writes files on POST. Missing/foreign Host → 403.
+      if (!isAllowedHost(req.headers.host)) {
+        sendJson(res, 403, { ok: false, error: 'forbidden host' });
+        return;
+      }
+
       const { pathname } = new URL(req.url, 'http://127.0.0.1');
 
       if (req.method === 'GET' && pathname === '/') {
@@ -281,14 +320,41 @@ export function createViewerServer(file) {
 
       if (req.method === 'POST' && pathname === '/api/action') {
         const chunks = [];
-        req.on('data', c => chunks.push(c));
+        let size = 0;
+        let aborted = false;
+        req.on('data', c => {
+          if (aborted) return;
+          size += c.length;
+          if (size > 1_000_000) {
+            // Body size cap (~1 MB, ample for a single action). Stop
+            // accumulating and reject; the remaining chunks drain and are
+            // discarded, so the response is delivered cleanly and memory stays
+            // bounded. (Discarding — not req.destroy() — avoids an RST race
+            // that could drop the 413 before the client reads it.)
+            aborted = true;
+            sendJson(res, 413, { ok: false, error: 'payload too large' });
+            return;
+          }
+          chunks.push(c);
+        });
         req.on('end', () => {
+          if (aborted) return;
+
+          // A malformed request body is a client error: parse it in its own try
+          // so a JSON failure maps to 400, distinct from the 404/500 mapping of
+          // the file-read/write paths below.
+          let action;
+          try {
+            action = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          } catch {
+            sendJson(res, 400, { ok: false, error: 'invalid JSON body' });
+            return;
+          }
+
           // The outer try/catch cannot see errors thrown in this async
           // callback, so it needs its own. Map ENOENT → 404, anything else
-          // (bad body JSON, write failures, …) → 500.
+          // (write failures, corrupt file on disk, …) → 500.
           try {
-            const action = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-
             // Optimistic-concurrency gate: reject before any mutation if the
             // caller's token no longer matches the file on disk.
             const current = statSync(file).mtimeMs;
