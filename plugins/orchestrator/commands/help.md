@@ -17,8 +17,10 @@ screen-binding → solution-arch → feature-builder → scenario-verify) ให
 phase หลังกินผลของ phase หน้า) และ flat (orchestrator เรียก worker; worker ห้ามเรียก worker)
 
 ## คำสั่ง (namespace `/orchestrator:`)
-- `/build [module|SC-id] [--scale]` — รันทั้ง pipeline end-to-end (วางแผน → delegate ทุก phase → gate)
-- `/plan [module|SC-id] [--scale]` — แสดงแผน phase เฉยๆ ยังไม่รัน (read-only, เช็กก่อนว่าจะรันอะไรบ้าง)
+- `/build [module|SC-id|codebase-path] [--scale]` — รันทั้ง pipeline end-to-end (วางแผน → delegate ทุก
+  phase → gate); ให้ path codebase เดิมได้ถ้ายังไม่มี scenarios.json (brownfield → แทรก Phase 0
+  reverse-engineer ให้เอง)
+- `/plan [module|SC-id|codebase-path] [--scale]` — แสดงแผน phase เฉยๆ ยังไม่รัน (read-only, เช็กก่อนว่าจะรันอะไรบ้าง)
 - `/next` — รันทีละ phase แล้วหยุด (เดินทีละก้าว ตรวจ handoff ก่อนไปต่อ)
 - `/status [module|SC-id]` — สถานะรวมทุก phase: อันไหน done/pending/blocked + gate result (read-only)
 - `/gate [phase-id]` — ตรวจ verify gate ของ phase ที่เสร็จแล้วซ้ำ (read-only)

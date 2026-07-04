@@ -1,7 +1,7 @@
 # Run Ledger + Circuit Breaker
 
 The run ledger makes a multi-phase run **resumable** and **bounded**. A full STANDARD/ENTERPRISE run spans
-six delegated phases that can each take a while; a session can end mid-run. The ledger records exactly
+six delegated phases (seven with a Phase 0 bootstrap) that can each take a while; a session can end mid-run. The ledger records exactly
 which phase the run reached and each gate result, so a fresh session resumes without re-running a
 green phase — and the circuit-breaker counters stop a runaway from delegating forever.
 
@@ -52,9 +52,9 @@ other workers keep their ledgers in: `impl-progress.json`, `qa-tracker.json`).
 ```
 
 On a brownfield bootstrap (Phase 0 planned), `scope.ids` and `scope.has_ui` start empty/`null` — there is no
-spine yet to read them from — and get filled in once Phase 1 creates the confirmed scenarios. `scope` gains
-a `codebase_path` field instead until then. See `references/phase-sequence.md` → "Phase 0" for the full
-planning-output example.
+spine yet to read them from — and get filled in once Phase 1 creates the confirmed scenarios. `scope`
+carries a `codebase_path` field in place of `module` until then (the empty `ids`/`has_ui` keys stay). See
+`references/phase-sequence.md` → "Phase 0" for the full planning-output example.
 
 ## Lifecycle of a phase entry
 
@@ -91,7 +91,7 @@ subagents for a trivial query). The orchestrator caps itself:
 
 | Cap | QUICK | STANDARD | ENTERPRISE | Meaning |
 |---|---|---|---|---|
-| max total delegations / run | 4 | 11 | 15 | Hard stop on `counters.total_delegations`. A full 6-phase run is 6 delegations (7 when a Phase 0 brownfield bootstrap runs); the headroom covers the Phase-1 analysis beats (ideation panel = 1, critic rounds) and gate-retries. Hitting the cap → stop and report, do not delegate further. |
+| max total delegations / run | 4 | 11 | 15 | Hard stop on `counters.total_delegations`. A full 6-phase run is 6 delegations; the headroom covers the Phase-1 analysis beats (ideation panel = 1, critic rounds) and gate-retries. A **Phase 0 bootstrap run raises this cap by one** (5 / 12 / 16) — Phase 0 is an extra delegation, and without the bump the headroom the other beats rely on quietly shrinks (a QUICK bootstrap would otherwise consume its entire cap on 0→1→4→4q with no room for the critic). Hitting the cap → stop and report, do not delegate further. |
 | max gate-retries / run | 1 | 3 | 4 | A failed gate may re-delegate its phase; `counters.gate_retries` is bounded. Exhausted → surface to the user instead of retrying. |
 | max re-delegations / single phase | 1 | 1 | 1 | One phase is re-delegated **at most once** for a worker shortfall. A second failure of the same phase → stop; the problem isn't transient. |
 

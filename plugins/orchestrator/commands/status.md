@@ -13,7 +13,9 @@ Target: `$ARGUMENTS` (a module, an `SC-id`, or empty = current module).
 
 Do this:
 1. Read `.scenarioforge/run-ledger.json` and `scenarios.json`. If no ledger exists, report "no run started"
-   and show what `/plan` would produce. If no spine, point to `scenario-discovery`.
+   and show what `/plan` would produce. If no spine: on a brownfield bootstrap run whose `1-analysis`
+   isn't `done` yet, that's expected (Phase 1 creates the file) — report the bootstrap progress instead;
+   otherwise point to `scenario-discovery`.
 2. Report per phase from the ledger: status (pending / in_progress / done / gate_failed / blocked / n/a),
    gate result, the artifact pointer, and a one-line handoff summary.
 3. Add the spine trace state from rollups (not file dumps): how far `traces_down` is connected

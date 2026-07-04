@@ -13,9 +13,9 @@ Target: `$ARGUMENTS` (a module, an `SC-id`, or empty = current module).
 
 Do this:
 1. Read `.scenarioforge/run-ledger.json`. If none exists, there's nothing to resume → tell the user to run
-   `/build` or `/plan`. Read `scenarios.json` for the spine — on a brownfield bootstrap run where Phase 0
-   (`0-reverse`) isn't `done` yet, `scenarios.json` legitimately doesn't exist yet; that's expected, not
-   an error (Phase 1 creates it after Phase 0's gate passes).
+   `/build` or `/plan`. Read `scenarios.json` for the spine — on a brownfield bootstrap run,
+   `scenarios.json` legitimately doesn't exist until Phase 1 (`1-analysis`) is `done`; its absence any
+   time before that (Phase 0 pending, running, or even gated green) is expected, not an error.
 2. Apply the resume rules (`references/run-ledger.md`):
    - Phases `done` (green gate) → skip.
    - A phase `in_progress` (crashed mid-delegation) → re-enter and re-delegate it fresh (the worker resumes

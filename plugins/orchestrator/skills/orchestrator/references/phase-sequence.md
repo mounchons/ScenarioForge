@@ -45,9 +45,9 @@ sitemap straight from the code and writes `design/` (+ registry) — same artifa
 Because there is no `scenarios.json` yet, it writes **no** `traces_down` (nothing to attach to) and instead
 records every extracted artifact with no matching scenario in `reverse-notes.md`, each a *candidate*
 (inferred title/actor/goal from the code structure) marked `needs_user_confirmation` — never asserted as
-confirmed business intent. This is domain-design's existing documented behavior for "no scenarios.json yet"
-(see its own `codebase-analysis.md` Step 4) — Phase 0 is the orchestrator actually routing to it instead of
-stopping cold.
+confirmed business intent. This is domain-design's documented **bootstrap mode** (see its
+`codebase-analysis.md` → "Bootstrap mode", which defines the candidate format) — Phase 0 is the
+orchestrator actually routing to it instead of stopping cold.
 
 **Then Phase 1 runs differently too:** scenario-discovery's objective is seeded from `reverse-notes.md`'s
 candidates — it still **asks the user** to confirm/correct each candidate's actor, goal, business value,

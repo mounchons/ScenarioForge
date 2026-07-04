@@ -10,8 +10,9 @@ Invoke the **orchestrator** skill to apply a phase's verify gate again against t
 without delegating the worker. Use it to confirm a gate result, or to re-check after the user manually
 changed something upstream.
 
-Target: `$ARGUMENTS` = the phase id (`1-analysis`, `2-planning`, `2-planning-ui`, `3-solutioning`,
-`4-implementation`, `4-qa`). Empty = re-check the most recently finished phase in the ledger.
+Target: `$ARGUMENTS` = the phase id (`0-reverse`, `1-analysis`, `2-planning`, `2-planning-ui`,
+`3-solutioning`, `4-implementation`, `4-qa`). Empty = re-check the most recently finished phase in the
+ledger.
 
 Do this:
 1. Read `.scenarioforge/run-ledger.json` for the phase's recorded handoff + the named artifact, and

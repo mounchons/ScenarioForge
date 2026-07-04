@@ -69,7 +69,8 @@ content.)
   stopped orchestrating.
 - Never invent a scale, a scenario, or a missing artifact to make the line advance. A missing precondition
   is a **stop-and-report**, not a thing to fabricate (e.g. no `scenarios.json` -> tell the user to start
-  with scenario-discovery; do not write a stub spine).
+  with scenario-discovery — or, when the target is an existing codebase, route the Phase 0 bootstrap per
+  Step 0; either way, do not write a stub spine).
 - Never skip a verify gate to "save time". A gate that fails stops the line; the fix is to re-delegate the
   failing phase or surface the gap to the user, not to wave the handoff through.
 - Never override a worker's boundary on its behalf (e.g. do not accept an `analysis.suggestion`, lock a
@@ -153,8 +154,9 @@ a fresh session resume mid-pipeline without re-running finished phases. Working 
   ENTERPRISE strict modes/gates). Determine the in-scope set (a module, a single `SC-id`, or the whole
   spine) from the user's target.
 - Write the plan into the run ledger: ordered phases, scale, in-scope ids, and a `pending` status per
-  phase. This is the externalized plan (so a long run survives context limits). `/plan` stops here and
-  shows it; `/build` continues.
+  phase. This is the externalized plan (so a long run survives context limits). Exception: `/plan` runs
+  this step as a **read-only preview** — it shows the computed plan and stops *without* writing the
+  ledger; the ledger is first written by whichever executing command runs next (`/build` or `/next`).
 
 ### Step 2 — Delegate the next pending phase (the outer loop)
 For the next `pending` phase in the plan:

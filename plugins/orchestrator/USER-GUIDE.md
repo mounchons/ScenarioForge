@@ -187,7 +187,8 @@ ledger ของตัวเอง (feature-builder = `impl-progress.json`, scen
   design, mockup, feature, code, test — ทั้งหมดนั้นเป็นงาน worker. ถ้า orchestrator จะเขียน artifact เมื่อไร
   = มันกำลังทำงานแทน worker → ต้องหยุดแล้ว delegate
 - **artifact หาย = หยุดแล้วบอก** ไม่ปั้น stub ขึ้นมาเอง (เช่น ไม่มี scenarios.json → บอกให้รัน
-  scenario-discovery ก่อน)
+  scenario-discovery ก่อน — ยกเว้น target เป็น path codebase เดิม ซึ่งเข้าเคส Phase 0 bootstrap ตาม 2D
+  แต่ก็ยังไม่ปั้น spine เองอยู่ดี ให้ scenario-discovery เป็นคนสร้างใน Phase 1 เหมือนเดิม)
 - **flat hierarchy** — orchestrator เรียก worker; worker ห้ามเรียก worker; orchestrator ห้ามซ้อน
   orchestrator. delegation มีชั้นเดียวเสมอ (subagent ภายในของ feature-builder/scenario-verify นับเป็น
   ชั้นเดียวใต้ orchestrator และมันเองก็ไม่ spawn ต่อ)

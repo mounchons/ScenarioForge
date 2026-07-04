@@ -10,10 +10,11 @@ Invoke the **orchestrator** skill to execute exactly **one** pending phase (dele
 the user can inspect each handoff before the next phase runs. Useful for a supervised or first-time run.
 
 Do this:
-1. Read `.scenarioforge/run-ledger.json`. If there's no plan yet, run `/plan`'s planning step first to
-   create it (read `scenarios.json`; if no spine and the target is a module/`SC-id`, stop and point to
-   `scenario-discovery`; if no spine and the target is an existing codebase, plan the Phase 0 brownfield
-   bootstrap instead — see `references/phase-sequence.md` → "Phase 0").
+1. Read `.scenarioforge/run-ledger.json`. If there's no plan yet, compute it (the same planning step
+   `/plan` previews) and — since `/next` executes — write it to the ledger (read `scenarios.json`; if no
+   spine and the target is a module/`SC-id`, stop and point to `scenario-discovery`; if no spine and the
+   target is an existing codebase, plan the Phase 0 brownfield bootstrap instead — see
+   `references/phase-sequence.md` → "Phase 0").
 2. Find the first phase that is not `done` / `n/a` in plan order. If every phase is `done`, report the run
    complete and stop.
 3. For that one phase: build the **4-part contract** (`references/delegation-contract.md`), dispatch a
