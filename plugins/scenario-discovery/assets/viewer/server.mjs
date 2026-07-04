@@ -306,7 +306,7 @@ function openBrowser(url) {
   let cmd, cmdArgs;
   if (process.platform === 'win32') {
     cmd = 'cmd';
-    cmdArgs = ['/c', 'start', '""', url];
+    cmdArgs = ['/c', 'start', '', url];
   } else if (process.platform === 'darwin') {
     cmd = 'open';
     cmdArgs = [url];
