@@ -129,7 +129,7 @@
 
   @media print {
     body { background: #fff; }
-    #sf-filters, .decide, button, #sf-error button { display: none !important; }
+    #sf-filters, .decide, button, input, #sf-error button { display: none !important; }
     .tile, details.scenario { box-shadow: none; }
     details.scenario, .gap, .suggestion { break-inside: avoid; }
   }
@@ -499,7 +499,7 @@
       loadOnce();
       setInterval(function () {
         fetch('/api/scenarios').then(function (res) {
-          if (!res.ok) return null;
+          if (!res.ok) { loadOnce(); return null; } // file deleted/corrupted mid-session → surface the error
           return res.json();
         }).then(function (body) {
           if (body && body.mtimeMs !== lastMtime) { lastMtime = body.mtimeMs; clearError(); render(body.data, { live: true }); }
