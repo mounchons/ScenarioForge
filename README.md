@@ -47,6 +47,18 @@ directions: open one scenario and you can see its tables, screens, code, and tes
 Then start Phase 1 by describing your requirements and invoking scenario-discovery, and let
 the orchestrator drive the rest (`/orchestrator:build <module>`).
 
+## View your scenarios
+
+`scenarios.json` is nested JSON — open it in the human-readable viewer instead of reading raw:
+
+```text
+/scenario-discovery:view            # live viewer in the browser (edits write back to the file)
+/scenario-discovery:view snapshot   # self-contained scenarios-report.html, read-only, safe to send to clients
+```
+
+Requires Node ≥ 18 and a `scenarios.json` in the project. Full guide (Thai, incl. `node` fallback
+and troubleshooting): [`docs/user-guide.md` §6](docs/user-guide.md).
+
 ## Docs
 
 - **User guide (Thai, all plugins):** [`docs/user-guide.md`](docs/user-guide.md) — what each
