@@ -1,6 +1,6 @@
 {
   "name": "screen-binding",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Phase 2 (Planning, UI) worker for ScenarioForge. Theme-first: builds a Bootstrap 5 master page + theme.css + navbar + menu nav from the sitemap as viewable HTML, then mocks each has_ui screen as a wireframe or a high-fidelity HTML page (via the frontend-design skill). Talks to Claude Design both ways — import a handoff bundle, or generate per-screen prompts. Binds every page back via traces_down.pages. Renamed from ui-mockup.",
   "author": {
     "name": "Mounchon"

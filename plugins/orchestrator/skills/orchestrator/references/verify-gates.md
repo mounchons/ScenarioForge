@@ -5,6 +5,13 @@ the orchestrator's equivalent of an `IPipelineBehavior` post-condition: a small 
 phase depends on. The gate reads the handoff block + the named artifact's `rollup` / the specific
 `traces_down` field — never the whole artifact (artifact pattern).
 
+**Handoff numbers must be reproducible from the artifact.** Every count a handoff claims (entities, pages,
+APIs, FEs, TS) must be derived from the artifact at handoff time, and the gate spot-checks at least one
+against the artifact itself (e.g. count the sitemap's nodes). A count that can't be reproduced is a gate
+FAIL (worker shortfall) — downstream phases plan against those numbers, and a free-hand summary drifts
+(field case: a handoff said "sitemap 10 pages" over a 9-page artifact; the next worker had to choose which
+to believe).
+
 ## Gate outcomes
 
 - **PASS** → mark the phase `done` in the run ledger; delegate the next pending phase.
@@ -129,10 +136,19 @@ The next phase (scenario-verify) needs built code + control manifests to test.
 
 ## Gate 4q — after Phase 4q (scenario-verify) — the release fence
 
-This is the end of the line; the gate decides release-ready.
+This is the end of the line; the gate decides release-ready. The artifact is
+**`.scenarioforge/qa-tracker.json`** (never a repo-root `qa-tracker.json` — that path may belong to an
+unrelated legacy ledger; if both exist, the `.scenarioforge/` one is scenario-verify's).
 - [ ] The handoff reports **Gate 4 (control coverage) = PASS** — i.e. `gap_control_ids` and
       `fail_control_ids` are both empty: every control × every mandatory category it triggers has a
       `passed` scenario.
+- [ ] **The green is auditable, not just claimed:** `meta.run_status` agrees with `rollup.by_status`
+      (no "partial" note alongside an all-passed rollup), and per-spec run evidence exists under
+      `.scenarioforge/test-results/` covering every spec the rollup counts as run. Evidence missing or
+      contradicting the rollup → treat the suite as **unproven** (BLOCKED), not green — a rollup nobody
+      can re-derive is a claim, not a proof.
+- [ ] **A `passed` count requires an executed run.** Scenarios can only be `passed` via a recorded
+      Playwright run — an unreachable server means `pending` + a stop-and-report, never green.
 - [ ] If Gate 4 = BLOCKED, the run is **not** release-ready. Report exactly which control × category is a
       gap (no scenario) or a fail (red scenario). A `--force-control-coverage` override is allowed **only**
       if the user explicitly accepted it and it is logged — never waved through by the orchestrator.
@@ -147,3 +163,13 @@ Each gate's outcome is recorded in the run ledger and surfaced in the final run 
 (PASS / BLOCKED / n/a / gate_failed→retried). The point of the gates, end to end, is that a green run
 report means **the spine is connected and every phase's post-condition held** — not merely that every
 worker returned without erroring.
+
+## Commit checkpoint after a gate PASS (recommend — the orchestrator cannot run git)
+
+A multi-phase run accumulates days of work; a working tree with everything uncommitted loses the whole run
+to one mistake (field case: 114 files across all six phases sat uncommitted for four days). After each
+gate passes, the orchestrator **recommends a commit** to the user (or includes it in the next worker's
+objective when the user has authorized committing): one commit per gated phase, message naming the phase +
+module (e.g. `feat(matchprice): phase 2-planning — design/ + spine traces [gate PASS]`). The orchestrator
+never commits itself (no shell access, by design) — it makes the checkpoint impossible to forget, not
+automatic.

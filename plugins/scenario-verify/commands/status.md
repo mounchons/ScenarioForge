@@ -6,12 +6,12 @@ allowed-tools: Read, Glob, Grep
 
 # /status — Phase 4 QA progress (read-only)
 
-Invoke the **scenario-verify** skill in read-only mode to report progress from `qa-tracker.json`.
+Invoke the **scenario-verify** skill in read-only mode to report progress from `.scenarioforge/qa-tracker.json`.
 
 Target: `$ARGUMENTS` (a module / `SC-id` for the rollup, or a `TS-id` for one scenario's detail).
 
 Do this:
-1. Read `qa-tracker.json`. If absent, tell the user nothing has been generated yet.
+1. Read `.scenarioforge/qa-tracker.json`. If absent, tell the user nothing has been generated yet.
 2. For a module / SC: report `rollup` — total, by_status (passed/failed/pending/deprecated), by_category,
    by_tier — and the **Gate 4** line (`gap_control_ids`, `fail_control_ids`, PASS/BLOCKED) and
    `release_ready`.

@@ -107,9 +107,14 @@ and `traces_down.features` is written back. Working backward:
 - For a `has_ui` scenario, every page in `traces_down.pages` must be served by ≥1 FE.
 
 ### Step 4 — Plan the layering of each feature
-- Per `references/layering-rules.md` and the user's stack (ASP.NET Core 8 MVC + EF Core + MediatR + DDD):
+- Per `references/layering-rules.md` and the user's stack (ASP.NET Core MVC + EF Core + DDD; the handler
+  style — MediatR vs plain `IService` — follows the EXISTING project's convention, never assumed):
   name the `controller`, the `service`/`handler` (commands → handler, queries → handler or service),
   the `repository`(ies), the `di_registrations`, and the `dtos`. Names are a plan, not code.
+- **Page-structure facts come from the artifact, not from memory:** when an FE's description or acceptance
+  notes mention a page's structure (tab count, sections, modals), read it from the page's record/mockup
+  under `mockups/` at write time — a restated-from-memory count goes stale and misleads Phase 4 (field
+  case: a task said "5 tabs" over a page that had 8).
 - Map each FE's API operations to the contracts already in `design/api/`; do not introduce new endpoints
   (a needed-but-missing endpoint is a gap → domain-design).
 - Record `depends_on` between FE (e.g. "pay invoice" depends on "generate invoice") and `acceptance_refs`
@@ -127,19 +132,25 @@ and `traces_down.features` is written back. Working backward:
 - [ ] Every FE has a valid `scenario_ref` pointing at an existing scenario
 - [ ] Every FE references only entities / APIs that already exist in `design/` — no invented design
 - [ ] Every FE has a concrete layering plan (controller + service/handler + repository + DI + DTOs)
-- [ ] `depends_on` forms no cycle; every dependency id resolves to a real FE (ENTERPRISE: validated explicitly)
+- [ ] **Run the bundled checker at every scale** — `node <plugin>/scripts/verify-features.mjs features.json
+      scenarios.json` from the project root must print PASS (ids unique, `scenario_ref`s resolve,
+      `depends_on` resolves + acyclic via Kahn, every traced page served by ≥1 FE, spine backrefs intact,
+      `rollup.by_status` matches the actual statuses). This replaces hand-verifying those properties; a
+      FAIL is fixed before returning, and the PASS line goes into the handoff
 - [ ] No screen/page was designed or altered here; pages are read-only inputs
 - [ ] `business{}` / `analysis{}` of every scenario unchanged; no `locked` scenario re-planned silently
 - [ ] Any missing design recorded in `features-notes.md` as a gap (not invented)
-- [ ] scenarios.json still parses; `features.json` rollup matches the feature list
+- [ ] scenarios.json still parses
 
 ## Handoff
 
 Return a light pointer to the orchestrator (artifact pattern — do not dump files):
+Every `<N>` is **counted from features.json right before returning**, not recalled.
 ```
 phase: 3-solutioning
 artifact: ./features.json, scenarios.json#traces_down.features updated
 produced: <N> features across <N> scenarios (<crud/command/query/...> mix)
+verified: verify-features.mjs PASS (acyclic, depth <N>, pages served, rollup consistent)
 gaps: <N> recorded in features-notes.md (need domain-design) | none
 next: delegate implement (long-running) for ready features — it adds Scenario Trace Check (step 8);
       qa-* derives tests from each feature's acceptance_refs

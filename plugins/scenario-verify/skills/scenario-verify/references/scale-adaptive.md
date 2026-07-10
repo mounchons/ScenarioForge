@@ -24,6 +24,13 @@ A loop that can't converge must **report, not spin**. Caps bound every retry/ite
 | qa-critic iterations (ENTERPRISE) | — | — | 5 |
 | max category-batch subagents in flight | 3 | 5 | 5 |
 
+**Large suites (field note):** a real module can derive hundreds of `TS` (a 9-page module yielded 639).
+The scenarios-per-run cap bounds the **agentic debug attention** per invocation, not the raw test count —
+Playwright executes a whole spec file in one blocking run, so batch the work **per spec file** (each spec =
+one run + one results file under `.scenarioforge/test-results/`), update the ledger per spec, and count
+against the cap only the scenarios that needed the debug loop (a red that had to be classified/fixed). A
+639-green sweep is a handful of spec-file runs, not 639 loop iterations.
+
 On hitting a cap: leave the scenario `failed`, write the reason + last failure to the ledger + `qa-notes.md`,
 move on. Never exceed a cap silently. Caps hold **across resume** — a counter is never reset by restarting a
 session (that's the whole point of the breaker).

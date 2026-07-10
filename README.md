@@ -23,13 +23,19 @@ directions: open one scenario and you can see its tables, screens, code, and tes
 
 | Plugin | Phase | Tier | Status |
 | --- | --- | --- | --- |
-| scenario-discovery | 1. Analysis (+ beat 1.5 ideation panel, external AI personas) | 1 | available (v0.2.0) |
-| domain-design | 2. Planning | 1 | available (v0.1.0) |
-| screen-binding | 2. Planning / UI | 1 | available (v0.2.0) |
-| solution-arch | 3. Solutioning | 1 | available (v0.1.0) |
-| feature-builder | 4. Implementation | 2 | available (v0.2.0) |
-| scenario-verify | 4. QA | 1+2 | available (v0.1.0) |
-| orchestrator | all phases | 0 | available (v0.1.1) |
+| scenario-discovery | 1. Analysis (+ beat 1.5 ideation panel, external AI personas) | 1 | available (v0.4.0) |
+| domain-design | 2. Planning | 1 | available (v0.2.0) |
+| screen-binding | 2. Planning / UI | 1 | available (v0.3.0) |
+| solution-arch | 3. Solutioning | 1 | available (v0.2.0) |
+| feature-builder | 4. Implementation | 2 | available (v0.3.0) |
+| scenario-verify | 4. QA | 1+2 | available (v0.2.0) |
+| orchestrator | all phases | 0 | available (v0.2.0) |
+
+> v-2026-07-10: field-test hardening from the first end-to-end run (matchprice) — scenario-verify gains a
+> spec-authoring contract (probe-first, control kinds, tabs, server-rendered awareness, page-grouped
+> derivation, blocking runs + per-spec evidence); feature-builder gains SQL script conventions, JSON-casing
+> + engine-wiring checks, and a transcription pass; orchestrator gains auditable Gate 4q, derived handoff
+> counts, ops-bootstrap delegation, cap-raise + AMEND contracts; page records now carry tab/modal structure.
 
 ## Install
 

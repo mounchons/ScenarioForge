@@ -13,7 +13,7 @@ Target: `$ARGUMENTS` (a module / `SC-id`, or empty = current module). `--include
 per-control breakdown; `--force-control-coverage` records an override (logged, never silent).
 
 Do this:
-1. Read `qa-tracker.json` + the UI Control Manifests.
+1. Read `.scenarioforge/qa-tracker.json` + the UI Control Manifests.
 2. For every control, compute `mandatory_categories`, `covered`, `passed`, `gap_categories`,
    `fail_categories` per `references/coverage-gate.md`. A `deprecated` scenario does NOT count as covered.
 3. Roll up `gap_control_ids` + `fail_control_ids`. **Gate 4 = PASS** iff both are empty, else **BLOCKED**.

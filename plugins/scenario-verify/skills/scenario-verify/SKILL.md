@@ -50,6 +50,8 @@ It works in **two distinct modes** that map to two tiers:
 
 > qa-tracker.json shape + scenario status lifecycle + resume rules: `references/qa-tracker.md`
 > The 5 mandatory test categories + how each is derived from a control: `references/control-spec-scenarios.md`
+> How each spec body is written — probe-first, control kinds, tabs/modals, rendering model, fixtures,
+> permission patterns (field-proven; mandatory before authoring): `references/spec-authoring.md`
 > TS id convention + the data-testid selector contract: `references/id-and-selectors.md`
 > Gate 4 (control coverage) — the release fence and its gap math: `references/coverage-gate.md`
 > Per-category model routing (Opus / Sonnet / Haiku) + the 4-part contract: `references/model-routing.md`
@@ -70,13 +72,17 @@ Reads `scenarios.json` (each scenario's `acceptance_criteria` refs + `postcondit
 + `traces_down.pages`), the **UI Control Manifests** `feature-builder` emitted
 (`.scenarioforge/ui-controls/FE-<id>.json` — the binding / validation / permission / cascade intent per
 control, and the `data-testid` selectors), the page rows in `mockups/` (to resolve URLs), and `features.json`
-(to map a control's FE back to its scenario). Reads its own `qa-tracker.json` ledger to resume.
+(to map a control's FE back to its scenario). Reads its own `.scenarioforge/qa-tracker.json` ledger to resume.
 
-Writes **`qa-tracker.json`** (the derived `TS-xxx` scenarios, their category + control_refs + model tier,
-and run results — pending / running / passed / failed / deprecated), the test artifacts the run produces
-(Playwright specs under the project's test path, keyed by `data-testid`), and writes each derived test id
-into the owning scenario's `traces_down.test_scenarios[]` (idempotent). Never edits `business{}`,
-`analysis{}`, acceptance criteria, or any application source.
+Writes **`.scenarioforge/qa-tracker.json`** — always this path, never the repo root (the derived `TS-xxx`
+scenarios, their category + control_refs + model tier, and run results — pending / running / passed /
+failed / deprecated), the test artifacts the run produces (Playwright specs under the project's test path,
+keyed by `data-testid`, shared helpers under `helpers/`), per-spec run results under
+`.scenarioforge/test-results/`, and writes each derived test id into the owning scenario's
+`traces_down.test_scenarios[]` (idempotent). **A different `qa-tracker.json` already sitting at the repo
+root (e.g. from the legacy qa-ui-test plugin) is somebody else's ledger — never read it as state, never
+overwrite it; note its existence in `qa-notes.md` and move on.** Never edits `business{}`, `analysis{}`,
+acceptance criteria, or any application source.
 
 ## What this worker does NOT do (boundaries)
 
@@ -128,9 +134,14 @@ ledger that lets a fresh session resume mid-run without redoing passed scenarios
 - Glob/Read `features.json` + the UI Control Manifests under `.scenarioforge/ui-controls/`. No manifests
   and no AC to prove -> stop; tell the user to run feature-builder (this worker proves a build, it does not
   create one).
-- Read `qa-tracker.json` if it exists. **Resume:** scenarios already `passed` are skipped, a `running`/`failed`
-  one resumes its run loop at its last state (the ledger records category, control_refs, model tier, retry
-  count). Never re-run passed work. Absent -> fresh run, create the ledger (CREATE mode).
+- **Environment preflight (before any run half):** hit the app's base URL once (e.g. `curl -sk -o /dev/null
+  -w '%{http_code}'`). Unreachable -> generation may still proceed, but the run half **stops and reports
+  the precondition** (what must be booted: app, DB, seed, secrets) instead of marking anything run. An
+  un-run suite is never a green suite; a dead server is an environment finding for the orchestrator/user,
+  not a reason to loop.
+- Read `.scenarioforge/qa-tracker.json` if it exists. **Resume:** scenarios already `passed` are skipped, a
+  `running`/`failed` one resumes its run loop at its last state (the ledger records category, control_refs,
+  model tier, retry count). Never re-run passed work. Absent -> fresh run, create the ledger (CREATE mode).
 - Detect **CREATE vs APPEND** (see `references/qa-tracker.md`): a manifest changed since last generation ->
   APPEND mode (delta only) — never overwrite, never renumber existing `TS` ids, never touch a `passed`
   scenario whose control is unchanged.
@@ -139,12 +150,26 @@ ledger that lets a fresh session resume mid-run without redoing passed scenarios
 ### Step 1 — Derive the scenario set (Tier 1, generate)
 - For each control in each manifest, derive its mandatory categories per
   `references/control-spec-scenarios.md`: `render-binding` always; `api-binding` if `binding.source == api`;
-  `permission` (one per role) if `permission != null`; `validation` if it has a rule; `cascade-loading-error`
-  if `depends_on != null` or loading/error states apply.
+  `validation` if it has a rule; per-control `CASCADE` if `depends_on != null` — and the **page-grouped**
+  scenarios: `permission` per page x role and `LOAD`/`ERR` per page with api-bound controls, each carrying
+  `control_refs` for every control covered (see "Page-level grouping" — do not fan permission out per
+  control on a role-homogeneous page).
 - Mint each `TS-<module>-<page>-<category>[-<role|rule>]-<nnn>` per `references/id-and-selectors.md`, anchor
   every step on the control's `data-testid` selector (no fuzzy text matching), and carry the `scenario_ref`
-  from the manifest. Write them `pending` into `qa-tracker.json` with their `control_refs`, `category`, and
-  routed `model_tier`. In APPEND mode, only mint the delta.
+  from the manifest. Write them `pending` into `.scenarioforge/qa-tracker.json` with their `control_refs`,
+  `category`, and routed `model_tier`. In APPEND mode, only mint the delta.
+
+### Step 1.5 — Probe, then author the spec bodies (`references/spec-authoring.md` — mandatory)
+- **Probe each page's real DOM first** (Rule 0): control kinds, hidden inputs, tab/modal inventory, the
+  page's rendering model (client-fetch vs server-rendered), real cascade endpoints. The probe script lives
+  in the session scratchpad, never in the project.
+- Author each spec body by the rules: assert by control kind (visible / attached / count), activate tabs
+  and modals before asserting, `.first()` on prefix locators, validation per the enforcement that exists,
+  permission per the fallback the app really implements, LOAD/ERR per the rendering model.
+- **No `TODO(fixture)` bodies, ever** (Rule 8): real seed data, an honest documented empty-state, or a gap
+  in `qa-notes.md` — a placeholder body that fakes an assertion is a contract violation, not a shortcut.
+- Shared helpers (`login`, `activateTab`, kind-branching asserts) go under the suite's `helpers/` — never
+  duplicated inline per spec.
 
 ### Step 2 — Dispatch + run one category-batch (Tier 2, the inner loop)
 Group `pending` scenarios by routed tier, then **dispatch a fresh subagent per batch** with the 4-part
@@ -152,14 +177,24 @@ contract from `model-routing.md` (objective = drive these `TS` to green; output 
 ledger update; boundaries = these scenarios only, fix the *test* not the app, surface app bugs as findings,
 no spawning; context = qa-tracker#TS + the manifest controls + resolved URLs from mockups). For each scenario
 the subagent:
-- **runs** it through Playwright. Green -> mark `passed`. Red -> read the failure and classify: a *test*
-  defect (selector drift, missing wait, bad fixture) is fixed and retried — the agentic loop; a *real app
-  defect* (the behavior is genuinely wrong) is recorded as a **finding** against the owning FE and the
-  scenario is left `failed` with the captured reason. Do not fix app code to make a test pass.
+- **runs** it through Playwright — **blocking, in-turn** (`npx playwright test <spec> --reporter=json`,
+  wait for exit). Never launch the suite backgrounded and sit in a monitor-wait poll loop: a blocking run
+  converges and returns a parseable result; a backgrounded one has field-observably failed to converge.
+- **Preserve evidence per spec:** write each spec's JSON reporter output to
+  `.scenarioforge/test-results/<spec-name>.json` — one file per spec, never a shared path that each run
+  overwrites. These files are what lets the orchestrator's release gate audit "N passed" independently
+  later; a rollup nobody can re-derive is a claim, not a proof.
+- Green -> mark `passed`. Red -> read the failure and classify: a *test* defect (selector drift, missing
+  wait, bad fixture, un-probed DOM assumption — check `spec-authoring.md` first) is fixed and retried — the
+  agentic loop; a *real app defect* (the behavior is genuinely wrong) is recorded as a **finding** against
+  the owning FE and the scenario is left `failed` with the captured reason. Do not fix app code to make a
+  test pass. When rewriting a body, preserve the test title verbatim (the `TS-` id is the trace key).
 - Each retry increments the scenario's counter; at the cap (circuit breaker) -> leave it `failed`, write the
   reason to the ledger + `qa-notes.md`, move on — never spin past the cap. A Haiku/Sonnet scenario stuck at
   **half** its cap is **escalated to Opus** once.
-- Update the ledger after each scenario so a crash mid-run is resumable.
+- Update the ledger after each spec batch so a crash mid-run is resumable — statuses, `result.last_run_at`,
+  recomputed `rollup.by_status`, **and `meta.run_status`** (which specs have actually run vs pending). A
+  ledger whose rollup says green while `meta.run_status` still says partial is a broken audit trail.
 
 ### Step 3 — Enforce Gate 4 (control coverage — the Layer 2 fence)
 Per `references/coverage-gate.md`: for every control, every **mandatory** category it triggers must have a
@@ -182,9 +217,11 @@ hierarchy: the critic spawns nothing.
 
 ## Self-Check (mandatory before returning work)
 
-- [ ] Every control's mandatory categories were derived (`render-binding` always; conditionals per manifest triggers)
+- [ ] Every control's mandatory categories were derived (`render-binding` always; conditionals per manifest triggers; permission + LOAD/ERR page-grouped with full `control_refs`)
 - [ ] Every `TS` anchors on a `data-testid` selector (no fuzzy text matching) and carries a valid `scenario_ref`
-- [ ] Each scenario is `passed`, or `failed` with a captured reason + a finding routed to the owning FE
+- [ ] Every page was DOM-probed before its spec was authored; assertions follow `spec-authoring.md` (kind-aware, tab/modal-activated, `.first()` on prefixes); **zero `TODO(fixture)` bodies**
+- [ ] Runs were blocking in-turn; per-spec JSON results exist under `.scenarioforge/test-results/`; `meta.run_status` matches what actually ran
+- [ ] Each scenario is `passed`, or `failed` with a captured reason + a finding routed to the owning FE — no scenario marked `passed` without an executed run behind it
 - [ ] No app source was edited to make a test pass; test-only fixes (selector/wait/fixture) are the loop
 - [ ] permission / cascade went to Opus; api-binding / validation to Sonnet; render-binding to Haiku (overrides logged)
 - [ ] No retry cap exceeded silently; a stuck Haiku/Sonnet scenario escalated to Opus once

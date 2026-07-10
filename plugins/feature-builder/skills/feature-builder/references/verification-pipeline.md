@@ -19,6 +19,11 @@ business scenario that justifies it.
 ## Gate 2 — Design Compliance
 - **Check:** the entity, its fields/types, and relationships in code match the Data Dictionary + ER in
   `design/`. Property names + types == DD rows; FK/navigation == ER relationships; nullability matches.
+  **Type compliance includes the storage type**: an enum-backed property's column type matches the enum's
+  underlying type (`: short` → SMALLINT, `: byte` → TINYINT) in EF config **and** in any raw DDL script the
+  feature ships (`sql-script-conventions.md` §6) — an int-widened column passes the build and crashes at
+  runtime. Column widths hold the module's real seed/reference data, not just the DD's guess (a too-narrow
+  width found during implementation is a DD gap, routed up — not silently widened in one place).
 - **Pass:** no drift from `design/`.
 - **Fail action:** if code is wrong, fix the code. If the design itself is missing/incomplete, that is a
   **gap** -> record in `impl-notes.md`, mark `blocked`, do NOT invent the field. Code must conform to
@@ -64,12 +69,22 @@ business scenario that justifies it.
 - **Fail action:** move hard-coded values into config; add the missing migration.
 
 ## Gate 8 — Scenario Trace Check (NEW in ScenarioForge)
-- **Check:** two assertions tie the code back to the spine —
+- **Check:** three assertions tie the code back to the spine —
   1. The feature has a **valid `scenario_ref`** resolving to an existing scenario in `scenarios.json`.
   2. **Every `postcondition`** in that scenario's `business.postconditions[]` is asserted by **>=1 test**
      (the test that proves the business outcome actually happens — e.g. postcondition "invoice = paid"
      must have a test asserting the invoice's state becomes paid).
-- **Pass:** ref resolves AND every postcondition maps to >=1 asserting test.
+  3. **Input-completeness for rule/engine features:** when the feature evaluates rules against a built
+     context/field-map, enumerate every input the rule set consumes and verify each is either **wired**
+     (derivable from the request DTO / persisted state in the context-building code) or **recorded as a
+     gap** in `impl-notes.md`. An unwired input doesn't fail a test — it makes its rules evaluate
+     null/NOT_APPLICABLE **silently**, so the postcondition tests can stay green while whole rule families
+     never fire (field bug: document-age eligibility rules never rejected anything because
+     `DocumentAgeDays` was never derived, despite the DTO carrying `DocumentDate`). The proof is a test
+     that drives the full evaluate path and asserts the consumed inputs actually reach the rule engine's
+     field map.
+- **Pass:** ref resolves AND every postcondition maps to >=1 asserting test AND (for rule/engine features)
+  every consumed input is wired-or-gapped, none silently null.
 - **Fail action:** if a postcondition has no asserting test, write one (or fix the code so it can be
   asserted). If the feature has no valid `scenario_ref`, it should not have been planned — stop and report
   to solution-arch; do not fabricate a ref.
@@ -90,6 +105,6 @@ business scenario that justifies it.
 | 5 Test Coverage | required tests exist + green | yes |
 | 6 Tech Audit | stack conventions honored | yes |
 | 7 Config | externalized + migration present | yes |
-| 8 Scenario Trace Check | scenario_ref valid + postconditions tested | yes |
+| 8 Scenario Trace Check | scenario_ref valid + postconditions tested + engine inputs wired-or-gapped | yes |
 
 All eight green -> feature `done`. Any red -> stays `in_progress`, loops on the fix.

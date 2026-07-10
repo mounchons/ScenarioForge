@@ -95,6 +95,15 @@ subagents for a trivial query). The orchestrator caps itself:
 | max gate-retries / run | 1 | 3 | 4 | A failed gate may re-delegate its phase; `counters.gate_retries` is bounded. Exhausted → surface to the user instead of retrying. |
 | max re-delegations / single phase | 1 | 1 | 1 | One phase is re-delegated **at most once** for a worker shortfall. A second failure of the same phase → stop; the problem isn't transient. |
 
+**User-approved cap raise (the sanctioned escape hatch).** The delegation cap guards against *runaway*
+fan-out, not against legitimate user-directed re-scoping (field case: resolving a blocked release fence +
+an E2E recalibration pushed a STANDARD run from 11 to 24 delegations, every one user-directed). When the
+cap is hit but the user explicitly re-scopes the run: record a `counters.cap_override` object in the
+ledger — `{standard_default, raised_to, reason}` with the reason naming *what the user asked for* and *why
+it is bounded* — then continue. Never raise the cap silently, never raise it for a retry loop (that is
+exactly what the cap exists to stop); each raise is a user decision, logged once, with a concrete new
+ceiling — not an "unlimited" switch.
+
 Additional invariants (not numeric, but enforced):
 - **One level of delegation.** The orchestrator delegates workers; a worker never spawns a worker; an
   orchestrator never nests an orchestrator. (A worker's own internal subagents — feature-builder's

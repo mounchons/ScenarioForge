@@ -40,6 +40,12 @@ row; do not create a second registry.
     { "name": "AmountDue",  "dd_ref": "Invoice.AmountDue",  "control": "readonly-text", "io": "display" },
     { "name": "CardToken",  "dd_ref": "Payment.CardToken",  "control": "secure-input",  "io": "capture" }
   ],
+  "structure": {                           // the page's container layout — REQUIRED when the page has any
+    "tabs": ["summary", "card", "history"], // tabs/sections/modals; [] or omitted for a flat page.
+    "default_tab": "summary",               // Downstream readers (feature-builder manifests, scenario-verify
+    "modals": ["confirm-payment"],          // tab-activation) take structure facts FROM HERE — a tab count
+    "sections": []                          // restated from memory in a later phase goes stale (field case:
+  },                                        // a task said "5 tabs" over a page that had 8).
   // ENTERPRISE only:
   "design_tokens": { "ref": "mockups/shell/theme.css" },  // brand from the shell; or bundle tokens on import
   "intent": "Let a subscriber confirm the card on file and pay the open invoice in one step.",
@@ -50,6 +56,10 @@ row; do not create a second registry.
 Hard rules:
 - `fidelity`, `source`, and `design_ref` are mandatory. A binding with no design pointer is invalid.
 - `extends_shell` must point at the shell — every page shares the master page / theme / nav.
+- `structure` is mandatory for any page with tabs/sections/modals and MUST match the mockup file (same tab
+  ids/count). It is the single source of truth for page layout facts downstream — feature-builder's UI
+  Control Manifests note which tab/modal hosts each control, and scenario-verify activates tabs from it.
+  When the mockup's structure changes, this block changes in the same edit.
 - Every `fields[].dd_ref` MUST resolve to an existing Data Dictionary row (Entity.Field). No DD row → it is
   a **gap**, reported back to domain-design — never silently added here.
 - `io` is explicit: `display` (read) vs `capture` (write). Helps qa-* later derive field-level checks.

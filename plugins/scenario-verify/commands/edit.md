@@ -12,7 +12,7 @@ changed (the APPEND delta path).
 Two modes from `$ARGUMENTS`:
 
 **A) `<TS-id>` — edit one scenario.**
-- Read it from `qa-tracker.json`. Adjust what the user asks (assertion, selector reference, category_detail)
+- Read it from `.scenarioforge/qa-tracker.json`. Adjust what the user asks (assertion, selector reference, category_detail)
   while keeping it anchored on a `data-testid` and keeping its `scenario_ref` intact.
 - Never silently change which control/category it proves — if that changes, it's a different `TS` (deprecate
   + mint new), not an in-place edit.

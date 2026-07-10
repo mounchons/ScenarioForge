@@ -2,7 +2,11 @@
 
 > คู่มือฉบับผู้ใช้ ครอบคลุม plugin ทั้ง 7 ตัว: แต่ละตัวทำอะไร เตรียมอะไรก่อน และสั่งงานอย่างไร
 > ฉบับลงลึกรายตัวดูที่ `plugins/<ชื่อ>/USER-GUIDE.md` (scenario-discovery ใช้ `USAGE.md`)
-> อัปเดตล่าสุด: 2026-07-06 (scenario-discovery v0.4.0 — เพิ่มวิธีเปิด Viewer ดู scenarios.json ที่ §6)
+> อัปเดตล่าสุด: 2026-07-10 (field-test hardening จาก run จริง end-to-end รอบแรก — scenario-verify v0.2.0
+> ได้ spec-authoring contract + per-spec run evidence, feature-builder v0.3.0 ได้ SQL script conventions +
+> engine-wiring gate, orchestrator v0.2.0 ได้ AMEND / ops-bootstrap / cap-raise contracts, domain-design
+> v0.2.0 ได้ design-notes.md contract, solution-arch v0.2.0 ได้ scripts/verify-features.mjs,
+> screen-binding v0.3.0 ได้ structure block — ผู้ใช้เดิมต้อง update/reinstall plugin เพื่อรับ version ใหม่)
 
 ---
 

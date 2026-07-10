@@ -164,11 +164,15 @@ retry counter ไม่ reset)
 ```
 .scenarioforge/
   qa-tracker.json            ← TS + ผลรัน + findings + coverage + rollup (source of truth Phase 4 QA)
-  qa-notes.md                ← gaps + override log
+  qa-notes.md                ← gaps + override log + probe/recalibration notes
+  test-results/<spec>.json   ← ผลรัน Playwright แยกไฟล์ต่อ spec (หลักฐาน audit ย้อนหลัง — ห้ามเขียนทับรวมไฟล์เดียว)
   ui-controls/FE-*.json      ← (อ่านอย่างเดียว — feature-builder เขียน)
-<test path>/                 ← Playwright specs ที่ generate (ผูก data-testid)
+<test path>/                 ← Playwright specs ที่ generate (ผูก data-testid) + helpers/ (login, activateTab)
 scenarios.json               ← เขียนกลับเฉพาะ traces_down.test_scenarios[] (idempotent)
 ```
+
+> ข้อควรระวัง: ถ้าเจอ `qa-tracker.json` ที่ **repo root** (ของ plugin อื่น เช่น qa-ui-test เดิม) — เป็นคนละ ledger
+> ห้ามอ่านเป็น state ห้ามเขียนทับ บันทึกไว้ใน qa-notes.md แล้วใช้ `.scenarioforge/qa-tracker.json` เท่านั้น
 
 ---
 

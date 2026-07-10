@@ -1,6 +1,6 @@
 {
   "name": "solution-arch",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Phase 3 (Solutioning) worker for ScenarioForge. Reads each scenario's traces_down (entities + apis from domain-design, pages from screen-binding) and composes feature units (FE-xxx) with their layering — controller, service/handler, repository, DI — into features.json, writing traces_down.features back to the scenario spine. Says HOW the design is assembled; never invents entities or writes code.",
   "author": {
     "name": "Mounchon"

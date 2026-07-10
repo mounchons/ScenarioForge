@@ -9,7 +9,7 @@ Explain this plugin to the user in Thai (per their preference), concisely. Cover
 
 **What this plugin is:** ScenarioForge Phase 4 (QA), the end-of-spine **prover** (renamed from qa-ui-test).
 It reads each scenario's acceptance criteria + the UI Control Manifests that feature-builder emitted, and
-derives traceable E2E test scenarios (`TS-xxx`) into `qa-tracker.json` — **Layer 2** of the two-layer fence.
+derives traceable E2E test scenarios (`TS-xxx`) into `.scenarioforge/qa-tracker.json` — **Layer 2** of the two-layer fence.
 **Generate** is a deterministic Tier 1 pass; **run** is a Tier 2 agentic loop (run -> debug -> retry through
 Playwright until green). It's a per-category dispatcher: permission/cascade -> **Opus**, api-binding/
 validation -> **Sonnet**, render-binding -> **Haiku**. It enforces **Gate 4** (control coverage): every
@@ -20,7 +20,7 @@ control x mandatory category must have a passing scenario before release. It fix
 (per rule), cascade-loading-error — derived from each control's manifest fields.
 
 **The commands:**
-- `/scenario-verify:generate [module|SC-id] [--quick|--standard|--enterprise] [--category ...]` — derive TS into qa-tracker.json (no run).
+- `/scenario-verify:generate [module|SC-id] [--quick|--standard|--enterprise] [--category ...]` — derive TS into .scenarioforge/qa-tracker.json (no run).
 - `/scenario-verify:run [module|SC-id|TS-id|--all] [--category ...] [--model ...] [--no-escalate]` — run the suite (agentic loop).
 - `/scenario-verify:route [module|SC-id]` — preview the Opus/Sonnet/Haiku routing + cost. Read-only.
 - `/scenario-verify:continue [module|SC-id|TS-id]` — resume an interrupted run from the ledger.
