@@ -171,5 +171,23 @@ to one mistake (field case: 114 files across all six phases sat uncommitted for 
 gate passes, the orchestrator **recommends a commit** to the user (or includes it in the next worker's
 objective when the user has authorized committing): one commit per gated phase, message naming the phase +
 module (e.g. `feat(matchprice): phase 2-planning — design/ + spine traces [gate PASS]`). The orchestrator
-never commits itself (no shell access, by design) — it makes the checkpoint impossible to forget, not
-automatic.
+never commits itself (its shell access is limited to `node` for the bundled verify scripts — no git, by
+design) — it makes the checkpoint impossible to forget, not automatic.
+
+## Executable gate checks (run them — they are why the gates can be trusted)
+
+Two bundled, read-only, deterministic checkers turn gate spot-checks into machine verdicts. Run them from
+the project root via `node`:
+
+- **`<orchestrator plugin>/scripts/verify-spine.mjs [projectRoot] [--strict]`** — cross-phase link
+  integrity: traces_down refs resolve (registry / features.json / qa-tracker), registry files exist on
+  disk, features.json ↔ impl-progress ledgers agree (+ `deferred[]` explains gaps), qa-tracker rollup vs
+  statuses vs `meta.run_status` vs per-spec evidence, gate-4 math, manifest selectors. Sections SKIP
+  cleanly for phases not yet run — so it is valid to run **at every gate**, not only at 4q. Exit 0 = PASS.
+- **`<solution-arch plugin>/scripts/verify-features.mjs features.json scenarios.json`** — features.json
+  internals (unique ids, scenario_refs, acyclic depends_on, pages served, rollup) — Gate 3's core.
+
+Gate policy: **Gate 3 runs verify-features; every gate from 2 onward runs verify-spine.** A FAIL exit is a
+gate FAIL with the printed violations as the named holes (worker-shortfall vs refused-to-invent per the
+usual rules). If `node` is unavailable in the session, fall back to the manual spot-checks — but say so in
+the gate record.

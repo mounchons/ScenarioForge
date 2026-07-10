@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "scenarioforge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "ScenarioForge — scenario-spined plugin suite for Claude Code. BMAD 4-phase pipeline (Analysis -> Planning -> Solutioning -> Implementation) with an orchestrator + 3-tier worker architecture, where a business scenario is the aggregate root that every phase traces back to.",
   "owner": {
     "name": "Mounchon"
@@ -51,7 +51,7 @@
       "name": "scenario-verify",
       "source": "./plugins/scenario-verify",
       "description": "Phase 4 (QA). The end-of-spine prover (renamed from qa-ui-test). Reads each scenario's acceptance criteria plus the UI Control Manifests feature-builder emitted, and derives traceable E2E test scenarios (TS-xxx) into qa-tracker.json — Layer 2 of the two-layer fence. For every form control it generates the 5 mandatory test categories (render-binding, api-binding, permission, validation, cascade-loading-error), each carrying a scenario_ref so a test always traces back to the business scenario it proves. Generation is a deterministic Tier 1 pass; running the suite is a Tier 2 agentic loop (run -> debug -> retry through Playwright until each scenario goes green or a circuit breaker bounds it). Acts as a per-category dispatcher: permission / cascade -> Opus, api-binding / validation -> Sonnet, render-binding -> Haiku. Enforces Gate 4 (control coverage) — every control x mandatory category must have a passing scenario before release. Writes traces_down.test_scenarios back to the spine; resumable via the qa-tracker ledger. Provides /generate, /run, /route, /continue, /retest, /status, /coverage, /edit, /gaps, /help commands.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "category": "development",
       "keywords": ["scenario-verify", "qa-ui-test", "qa", "e2e", "verification", "test-generation", "ui-control-manifest", "two-layer-fence", "gate-4", "control-coverage", "playwright", "scenario-trace", "model-routing", "resumable", "bmad", "ddd", "dotnet"]
     },
@@ -59,7 +59,7 @@
       "name": "orchestrator",
       "source": "./plugins/orchestrator",
       "description": "Tier 0 coordinator — the single entry point that drives the whole pipeline. Reads the scenario spine (scenarios.json), decides the effort scale, plans the phase sequence (Analysis -> Planning -> Planning/UI -> Solutioning -> Implementation -> QA), and delegates each phase to its worker with a 4-part contract — without writing any artifact itself. Between phases it runs a verify gate that checks the finished worker's handoff against the spine before the next phase may start; a red gate stops the line (re-delegate once for a worker shortfall, or surface an upstream gap for the user to resolve). Sequential delegation (each phase consumes the last's output), flat hierarchy (the orchestrator spawns workers; a worker never spawns a worker), circuit-breaker bounded (a per-run cap on delegations and gate retries). Resumable across sessions via a run ledger. Provides /build, /plan, /next, /status, /gate, /resume, /scale, /help commands.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "category": "development",
       "keywords": ["orchestrator", "coordinator", "tier-0", "delegation", "verify-gate", "phase-sequence", "scenario-spine", "scale-adaptive", "circuit-breaker", "artifact-handoff", "resumable", "bmad", "ddd", "dotnet"]
     }

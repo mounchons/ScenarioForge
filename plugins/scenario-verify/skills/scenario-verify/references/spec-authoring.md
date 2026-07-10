@@ -14,18 +14,19 @@ Never write assertions from the manifest alone. The manifest pins **identity** (
 what it means); it does not pin **presentation** (visible vs hidden, tag kind, tab placement, conditional
 rendering). Before authoring a page's spec:
 
-1. Drive the page once with a throwaway probe script (login → goto → `page.evaluate`) and dump, per
-   `data-testid`: `tagName`, `type`, computed `display`, `disabled`, `required`, child
-   `option`/`radio`/`checkbox` counts.
-2. Dump the page's tab/modal inventory: `.tab-pane`, `[data-bs-toggle=tab]`, `.modal` (or the project's
-   framework equivalents) — which controls start hidden behind an inactive tab or a closed modal.
-3. Probe each cascade/dependent endpoint's **real** URL and response shape (client fetches often hit MVC
-   routes like `/Module/Action`, **not** `/api/...`).
-4. A `data-testid` MISSING from the probe is **usually a conditional server slot** (`@if`-wrapped Razor,
+1. Run the **bundled probe** — `node <plugin>/scripts/probe-page.mjs <url> [--login-url ... --user ... 
+   --pass ...]` from the E2E suite directory. It dumps, per `data-testid`: tag, type, visibility,
+   `disabled`/`required`, option/radio/checkbox/row counts, the owning form (incl. `form=`-attribute
+   linking), tab/modal inventory + which controls start hidden behind an inactive container, and the
+   **rendering model** (client XHR during load, or none).
+2. Probe each cascade/dependent endpoint's **real** URL and response shape (client fetches often hit MVC
+   routes like `/Module/Action`, **not** `/api/...`) — the probe's `client_xhr_during_load` list is the
+   starting point.
+3. A `data-testid` MISSING from the probe is **usually a conditional server slot** (`@if`-wrapped Razor,
    `v-if`, etc.), not a bug — check the view source before gapping it.
 
-The probe lives in the session scratchpad, never in the project. This 2-minute step is what makes the spec
-pass on first run.
+Probe output is scratch input for authoring — never committed into the project. This 2-minute step is what
+makes the spec pass on first run.
 
 ## Rule 1 — Detect the rendering model before choosing LOAD/ERR/api-binding mechanics
 
@@ -53,8 +54,13 @@ generator. Never emit it without confirming the page actually fetches `/api/` cl
 | control behind a tab / modal | **activate the tab / open the modal first** (Rule 3), then assert |
 | conditional server slot (renders only inside `@if(...)`) | assert `toHaveCount(0)` **with the documented reason** when the condition is false on seed — do not fabricate the condition |
 | `<option>` element itself, empty result containers | `toBeAttached()` |
+| enhanced widget (DevExtreme/Kendo etc. — no native `<option>`; popup lists) | assert the wrapper (e.g. `.dx-selectbox` input), then open the dropdown and count popup items (e.g. `.dx-list-item`) — native `selectOption`/`toHaveValue` do NOT work; probe first to detect the widget class |
 
-Use one shared helper that branches on tag kind rather than repeating the logic per test.
+Use one shared helper that branches on tag kind rather than repeating the logic per test — the plugin ships
+ready-made ones under `assets/e2e-helpers/` (`assert-kind.ts`: `locOf`, `assertSelectPopulated`,
+`assertGroupPopulated`, `assertGridRows`, `assertServerForm`, `assertUnauthRedirect`; `activate-tab.ts`;
+`login.ts`). **Copy them into the suite's `helpers/` at generation time and adjust the marked constants**
+(testid prefix, login selectors) — do not re-derive them per project.
 
 ## Rule 3 — Tabs, modals, and strict mode
 
@@ -143,6 +149,24 @@ each test decide at authoring time:
    fallback** (Rules 2, 3, 6) with the reason recorded in the spec body comment + `qa-notes.md`.
 3. The precondition genuinely requires data only an owner can provide → that is a **gap** (`qa-notes.md`,
    routed upstream), and the TS stays `pending` — not a placeholder `passed`.
+
+## Test-data contract (agree BEFORE the run half)
+
+Rule 8 decides per test; this section is the up-front agreement that shrinks how often the empty-state
+fallback is needed. At generation time, derive from the manifests what the run will need and surface it as
+a short **test-data request** in `qa-notes.md` for the user/owner to fulfill (or explicitly decline):
+
+1. **A low-privilege credential** (`E2E_USER_LOW`/`E2E_PASS_LOW`) whenever any control has element-level
+   role gating — without it, every permission-negative degrades to the unauthenticated-redirect pattern
+   (valid, but it proves the page gate, not the element gate).
+2. **One representative runtime row** for each detail/row-scoped page family (e.g. one persisted record
+   reachable by id) — without it, entire detail pages assert only their not-found fallback (field case: 56
+   quote-detail tests all asserted the redirect because zero quotes existed).
+3. **Which flows may mutate data** — mutating round-trips (create/close-clone/import) are opt-in; the
+   default is read/structure assertions + route-stubbed submits so the seed stays re-runnable.
+
+Declined or unavailable items are recorded in `qa-notes.md` with the substituted assertion pattern — an
+honest downgrade, never a silent one.
 
 ## Title contract (recalibration-safe)
 

@@ -149,7 +149,8 @@ narrower contract — there is no spine yet, so nothing can be attached to it.
 scenario-verify's run half needs a **live app** (app + DB + schema + seed + secrets). Its preflight failing
 is an **environment finding, not a worker shortfall** — never gate-retry it (a re-run can't reach a dead
 server). Instead, with the user's explicit approval, the orchestrator delegates a bounded **ops bootstrap**
-step to a shell-capable worker (feature-builder has Bash; the orchestrator itself has none, by design):
+step to a shell-capable worker (feature-builder has full Bash; the orchestrator's own shell is limited to
+`node` for its verify scripts, by design):
 - **objective seed:** bring up a LOCAL/dev environment for the E2E run — start the DB (e.g. local docker),
   apply the module's DDL + seed scripts, boot the app(s) pointed at that local stack, verify with direct
   HTTP checks — then report endpoints + credentials for the run.

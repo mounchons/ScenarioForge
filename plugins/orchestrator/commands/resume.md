@@ -1,7 +1,7 @@
 ---
 description: Resume an interrupted pipeline run from the ledger — pick up at the first phase that isn't gated green
 argument-hint: "[module|SC-id]"
-allowed-tools: Read, Glob, Grep, Task
+allowed-tools: Read, Glob, Grep, Task, Bash(node:*)
 ---
 
 # /resume — continue an interrupted run

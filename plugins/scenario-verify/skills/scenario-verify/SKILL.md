@@ -160,16 +160,20 @@ ledger that lets a fresh session resume mid-run without redoing passed scenarios
   `category`, and routed `model_tier`. In APPEND mode, only mint the delta.
 
 ### Step 1.5 — Probe, then author the spec bodies (`references/spec-authoring.md` — mandatory)
-- **Probe each page's real DOM first** (Rule 0): control kinds, hidden inputs, tab/modal inventory, the
-  page's rendering model (client-fetch vs server-rendered), real cascade endpoints. The probe script lives
-  in the session scratchpad, never in the project.
+- **Probe each page's real DOM first** (Rule 0) with the bundled `scripts/probe-page.mjs`: control kinds,
+  hidden inputs, tab/modal inventory, the page's rendering model (client-fetch vs server-rendered), real
+  cascade endpoints. Probe output is scratch input, never committed into the project.
+- **Copy the shipped helpers** from `assets/e2e-helpers/` (`login.ts`, `activate-tab.ts`, `assert-kind.ts`)
+  into the suite's `helpers/` and adjust the marked constants — never duplicate helpers inline per spec,
+  never re-derive them from scratch.
 - Author each spec body by the rules: assert by control kind (visible / attached / count), activate tabs
   and modals before asserting, `.first()` on prefix locators, validation per the enforcement that exists,
   permission per the fallback the app really implements, LOAD/ERR per the rendering model.
+- **Surface the test-data request early** (spec-authoring "Test-data contract"): low-privilege credential,
+  representative runtime rows, mutation opt-ins — recorded in `qa-notes.md` for the owner to fulfill or
+  decline before the run half.
 - **No `TODO(fixture)` bodies, ever** (Rule 8): real seed data, an honest documented empty-state, or a gap
   in `qa-notes.md` — a placeholder body that fakes an assertion is a contract violation, not a shortcut.
-- Shared helpers (`login`, `activateTab`, kind-branching asserts) go under the suite's `helpers/` — never
-  duplicated inline per spec.
 
 ### Step 2 — Dispatch + run one category-batch (Tier 2, the inner loop)
 Group `pending` scenarios by routed tier, then **dispatch a fresh subagent per batch** with the 4-part

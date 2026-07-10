@@ -1,6 +1,6 @@
 {
   "name": "scenario-verify",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Phase 4 (QA) worker for ScenarioForge — the end-of-spine prover (renamed from qa-ui-test). Reads each scenario's acceptance criteria plus the UI Control Manifests that feature-builder emitted, and derives traceable E2E test scenarios (TS-xxx) into qa-tracker.json — the Layer 2 of the two-layer fence. For every form control it generates the 5 mandatory test categories (render-binding, api-binding, permission, validation, cascade-loading-error), each carrying a scenario_ref so a test always traces back to the business scenario it proves. Generation is a deterministic Tier 1 pass; running the suite is a Tier 2 agentic loop (run -> debug -> retry through Playwright until each scenario goes green or is bounded by the circuit breaker). Acts as a per-category dispatcher: routes permission / cascade scenarios to an Opus subagent, api-binding / validation to Sonnet, render-binding to Haiku. Enforces Gate 4 (control coverage) — every control x mandatory category must have a passing scenario before release. Writes traces_down.test_scenarios back to the spine; resumable via the qa-tracker ledger. Never invents controls or acceptance criteria — a missing manifest or AC is a gap sent back upstream, not guessed.",
   "author": {
     "name": "Mounchon"

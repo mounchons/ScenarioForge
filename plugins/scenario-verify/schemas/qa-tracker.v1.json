@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://scenarioforge/schemas/qa-tracker.v1.json",
+  "title": "ScenarioForge qa-tracker (scenario-verify ledger)",
+  "description": "Source of truth for Phase 4 QA. Lives at .scenarioforge/qa-tracker.json. See plugins/scenario-verify/skills/scenario-verify/references/qa-tracker.md for lifecycle/resume semantics.",
+  "type": "object",
+  "required": ["meta", "scenarios"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "meta": {
+      "type": "object",
+      "required": ["module", "schema_version", "generated_by", "effort_scale", "status"],
+      "properties": {
+        "module": { "type": "string" },
+        "schema_version": { "type": "string" },
+        "generated_by": { "const": "scenario-verify" },
+        "generated_at": { "type": "string" },
+        "effort_scale": { "enum": ["QUICK", "STANDARD", "ENTERPRISE"] },
+        "status": { "enum": ["draft", "generating", "running", "complete", "blocked"] },
+        "run_status": {
+          "type": "string",
+          "description": "Human-readable run progress; MUST be updated in the same write as scenario statuses — a rollup that says green under a 'partial' run_status is a broken audit trail."
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "scenario_ref", "control_refs", "category", "status"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^TS-" },
+          "scenario_ref": { "type": "string", "pattern": "^SC-" },
+          "control_refs": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "category": { "enum": ["render-binding", "api-binding", "permission", "validation", "cascade-loading-error"] },
+          "category_detail": { "type": ["string", "null"] },
+          "manifest_path": { "type": "string" },
+          "manifest_emitted_at": { "type": "string" },
+          "page_ref": { "type": "string" },
+          "url_pattern": { "type": "string" },
+          "selectors": { "type": "array", "items": { "type": "string" } },
+          "spec_path": { "type": "string" },
+          "model_tier": { "enum": ["opus", "sonnet", "haiku"] },
+          "status": { "enum": ["pending", "running", "passed", "failed", "deprecated"] },
+          "result": {
+            "type": "object",
+            "properties": {
+              "last_run_at": { "type": ["string", "null"] },
+              "retries": { "type": "integer", "minimum": 0 },
+              "escalated_to": { "type": ["string", "null"] },
+              "failure_reason": { "type": ["string", "null"] },
+              "finding_ref": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "ts_ref", "fe_ref", "severity", "detail", "status"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^FND-" },
+          "ts_ref": { "type": "string" },
+          "fe_ref": { "type": "string" },
+          "severity": { "enum": ["high", "medium", "low"] },
+          "detail": { "type": "string" },
+          "status": { "enum": ["open", "routed", "resolved", "wont_fix", "deferred"] }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "by_control": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "mandatory_categories": { "type": "array", "items": { "type": "string" } },
+              "covered": { "type": "array", "items": { "type": "string" } },
+              "passed": { "type": "array", "items": { "type": "string" } },
+              "gap_categories": { "type": "array", "items": { "type": "string" } },
+              "fail_categories": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "gap_control_ids": { "type": "array", "items": { "type": "string" } },
+        "fail_control_ids": { "type": "array", "items": { "type": "string" } },
+        "gate_4": { "enum": ["PASS", "BLOCKED"] }
+      }
+    },
+    "rollup": {
+      "type": "object",
+      "properties": {
+        "total": { "type": "integer" },
+        "by_status": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "by_category": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "by_tier": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "release_ready": {
+          "type": "boolean",
+          "description": "true ONLY when gate_4 == PASS AND no pending/failed/running scenarios AND per-spec run evidence exists under .scenarioforge/test-results/."
+        }
+      }
+    }
+  }
+}

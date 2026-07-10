@@ -2,11 +2,15 @@
 
 > คู่มือฉบับผู้ใช้ ครอบคลุม plugin ทั้ง 7 ตัว: แต่ละตัวทำอะไร เตรียมอะไรก่อน และสั่งงานอย่างไร
 > ฉบับลงลึกรายตัวดูที่ `plugins/<ชื่อ>/USER-GUIDE.md` (scenario-discovery ใช้ `USAGE.md`)
-> อัปเดตล่าสุด: 2026-07-10 (field-test hardening จาก run จริง end-to-end รอบแรก — scenario-verify v0.2.0
-> ได้ spec-authoring contract + per-spec run evidence, feature-builder v0.3.0 ได้ SQL script conventions +
-> engine-wiring gate, orchestrator v0.2.0 ได้ AMEND / ops-bootstrap / cap-raise contracts, domain-design
-> v0.2.0 ได้ design-notes.md contract, solution-arch v0.2.0 ได้ scripts/verify-features.mjs,
-> screen-binding v0.3.0 ได้ structure block — ผู้ใช้เดิมต้อง update/reinstall plugin เพื่อรับ version ใหม่)
+> อัปเดตล่าสุด: 2026-07-10 — 2 รอบ:
+> (รอบ 1 field-test hardening) scenario-verify ได้ spec-authoring contract + per-spec run evidence,
+> feature-builder v0.3.0 ได้ SQL script conventions + engine-wiring gate, orchestrator ได้ AMEND /
+> ops-bootstrap / cap-raise contracts, domain-design v0.2.0 ได้ design-notes.md contract, solution-arch
+> v0.2.0 ได้ scripts/verify-features.mjs, screen-binding v0.3.0 ได้ structure block
+> (รอบ 2 prose → executables) scenario-verify v0.3.0 ได้ scripts/probe-page.mjs + assets/e2e-helpers/ +
+> schemas/qa-tracker.v1.json + test-data contract; orchestrator v0.3.0 ได้ scripts/verify-spine.mjs
+> (รัน node ที่ gate ได้เอง) + กติกา resume เมื่อ worker ตายกลาง session
+> — ผู้ใช้เดิมต้อง update/reinstall plugin เพื่อรับ version ใหม่
 
 ---
 
