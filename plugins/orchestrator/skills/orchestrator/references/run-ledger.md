@@ -79,6 +79,11 @@ On start, Read the ledger:
 - A phase `in_progress` (a crash mid-delegation) → re-enter it: re-delegate it fresh (the worker is itself
   resumable from its own ledger — feature-builder's `impl-progress.json`, scenario-verify's
   `qa-tracker.json` — so its internal work isn't lost).
+- **A worker dying mid-task (session/context limit, crash) is NOT a gate failure and NOT a worker
+  shortfall** (field case: a worker completed its edit then died on the session limit). Re-enter the phase
+  via the worker's own resume path (`/continue`-style command reading its ledger) with the objective
+  "resume from your ledger — do not redo done work". It counts as a delegation (the cap must see it) but
+  **not** as a gate-retry; the retry counters inside the worker's ledger are never reset by the re-entry.
 - A phase `gate_failed` with `delegations == 1` → re-delegate once with the gap named (the gate-retry path).
 - A phase `gate_failed` with `delegations >= 2`, or `blocked` → do **not** auto-retry; surface
   `decision_needed` to the user.

@@ -1,7 +1,7 @@
 ---
 description: Re-run the verify gate for a finished phase against the current spine (read-only check)
 argument-hint: "[phase-id, e.g. 2-planning | 4-qa]"
-allowed-tools: Read, Glob, Grep
+allowed-tools: Read, Glob, Grep, Bash(node:*)
 ---
 
 # /gate — re-check a phase's verify gate (read-only)

@@ -20,7 +20,7 @@ description: >-
   modeling entities / Data Dictionary / API / sitemap (domain-design, Phase 2); designing screens
   (screen-binding, Phase 2 UI); composing features (solution-arch, Phase 3); writing code
   (feature-builder, Phase 4); generating / running the QA suite (scenario-verify, Phase 4 QA).
-allowed-tools: Read, Glob, Grep, Task
+allowed-tools: Read, Glob, Grep, Task, Bash(node:*)
 ---
 
 # orchestrator (Tier 0 — Coordinator)
@@ -176,8 +176,12 @@ For the next `pending` phase in the plan:
   the handoff and, if the gate needs it, the named artifact's `rollup`.
 
 ### Step 3 — Run the verify gate for the finished phase
-- Apply that phase's gate from `references/verify-gates.md` against the handoff + the spine. Each gate is a
-  small set of checks the *next* phase depends on, e.g.:
+- **Run the executable checks first** (see "Executable gate checks" in `references/verify-gates.md`):
+  `node <orchestrator plugin>/scripts/verify-spine.mjs` at every gate from Phase 2 onward (its sections
+  SKIP for phases not yet run), plus `node <solution-arch plugin>/scripts/verify-features.mjs` at Gate 3.
+  A FAIL exit is a gate FAIL with the printed violations as the named holes.
+- Then apply that phase's remaining gate criteria from `references/verify-gates.md` against the handoff +
+  the spine. Each gate is a small set of checks the *next* phase depends on, e.g.:
   - after Phase 1: `rollup.ready_for_next_phase == true` (analysis critic loop converged); every in-scope
     scenario has `business.actor` + `goal`.
   - after Phase 2: every in-scope scenario has non-empty `traces_down.entities`; the artifact the handoff

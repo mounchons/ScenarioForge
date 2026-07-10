@@ -1,7 +1,7 @@
 ---
 description: Execute exactly one pending phase — delegate it, run its gate, then stop (step through a run under supervision)
 argument-hint: "[--standard|--enterprise]"
-allowed-tools: Read, Glob, Grep, Task
+allowed-tools: Read, Glob, Grep, Task, Bash(node:*)
 ---
 
 # /next — run a single phase, then stop

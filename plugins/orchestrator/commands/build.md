@@ -1,7 +1,7 @@
 ---
 description: Run the full ScenarioForge pipeline end to end — plan the phases, delegate each worker in order, gate between phases
 argument-hint: "[module|SC-id|codebase-path] [--quick|--standard|--enterprise]"
-allowed-tools: Read, Glob, Grep, Task
+allowed-tools: Read, Glob, Grep, Task, Bash(node:*)
 ---
 
 # /build — drive the whole pipeline (Tier 0)

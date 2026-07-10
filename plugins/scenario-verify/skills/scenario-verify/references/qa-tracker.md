@@ -5,6 +5,9 @@ and their run results. It is the end-of-spine artifact: every `TS` carries a `sc
 `SC-...` it proves, so "is SC-billing-001 green?" is answerable by reading this file. Location:
 `.scenarioforge/qa-tracker.json` (alongside the impl ledger feature-builder wrote).
 
+The machine-readable JSON Schema ships with this plugin at **`schemas/qa-tracker.v1.json`** (the `$schema`
+URL below is its `$id`, not a fetchable URL) — validate against the local file.
+
 ## Schema (summary)
 
 ```jsonc

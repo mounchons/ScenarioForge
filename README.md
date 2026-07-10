@@ -28,14 +28,21 @@ directions: open one scenario and you can see its tables, screens, code, and tes
 | screen-binding | 2. Planning / UI | 1 | available (v0.3.0) |
 | solution-arch | 3. Solutioning | 1 | available (v0.2.0) |
 | feature-builder | 4. Implementation | 2 | available (v0.3.0) |
-| scenario-verify | 4. QA | 1+2 | available (v0.2.0) |
-| orchestrator | all phases | 0 | available (v0.2.0) |
+| scenario-verify | 4. QA | 1+2 | available (v0.3.0) |
+| orchestrator | all phases | 0 | available (v0.3.0) |
 
-> v-2026-07-10: field-test hardening from the first end-to-end run (matchprice) — scenario-verify gains a
-> spec-authoring contract (probe-first, control kinds, tabs, server-rendered awareness, page-grouped
+> v-2026-07-10 (round 1): field-test hardening from the first end-to-end run (matchprice) — scenario-verify
+> gains a spec-authoring contract (probe-first, control kinds, tabs, server-rendered awareness, page-grouped
 > derivation, blocking runs + per-spec evidence); feature-builder gains SQL script conventions, JSON-casing
 > + engine-wiring checks, and a transcription pass; orchestrator gains auditable Gate 4q, derived handoff
 > counts, ops-bootstrap delegation, cap-raise + AMEND contracts; page records now carry tab/modal structure.
+>
+> v-2026-07-10 (round 2): prose → executables. scenario-verify 0.3.0 ships `scripts/probe-page.mjs` (Rule-0
+> DOM probe incl. rendering-model detection), `assets/e2e-helpers/` (login / activate-tab / kind-aware
+> asserts, copied into each suite), `schemas/qa-tracker.v1.json`, and a test-data contract (low-priv
+> credential + runtime fixtures). orchestrator 0.3.0 ships `scripts/verify-spine.mjs` (cross-phase link +
+> ledger-honesty checker, run at every gate; validated against the field project — catches its real
+> inconsistencies), gets `Bash(node:*)` to run the bundled checkers, and worker session-death resume rules.
 
 ## Install
 
