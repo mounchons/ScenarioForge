@@ -9,7 +9,7 @@ Invoke the **scenario-verify** skill to list everything this worker could **not*
 upstream was missing — never guessed.
 
 Do this:
-1. Read `qa-notes.md` + `qa-tracker.json`.
+1. Read `qa-notes.md` + `.scenarioforge/qa-tracker.json`.
 2. List each gap with its kind + upstream owner:
    - **missing-manifest** — a built form-control FE with no `.scenarioforge/ui-controls/FE-*.json`
      -> owner: **feature-builder**.

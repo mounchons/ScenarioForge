@@ -4,7 +4,7 @@ description: >-
   Implement ready features into working code — Phase 4 (Implementation) of ScenarioForge, the
   Tier 2 agentic worker. Reads features.json (from solution-arch) plus the entities/pages each
   feature traces to, then implements one feature at a time in resumable iterations against the
-  user's stack (ASP.NET Core 8 MVC + EF Core + PostgreSQL + Bootstrap 5 + jQuery + HTMX + DDD),
+  user's stack (ASP.NET Core MVC + EF Core + SQL Server/PostgreSQL per the existing project + Bootstrap 5 + jQuery + HTMX + DDD),
   looping implement -> build -> fix until green. Acts as a per-feature dispatcher: routes hard /
   cross-page features to an Opus subagent and simple / repetitive ones to a Sonnet subagent that
   replicates an Opus-built exemplar, to cut cost without losing quality. Runs an 8-step
@@ -50,6 +50,8 @@ model on proven patterns.
 > The 8-step verification pipeline (each gate's pass/fail rule): `references/verification-pipeline.md`
 > UI Control Manifest schema + two-layer fence + drift policy: `references/ui-control-manifest.md`
 > Implementation conventions for the .NET stack (layer-by-layer): `references/implementation-conventions.md`
+> Owner-run SQL scripts (DDL/seed): idempotency, GO-batch traps, collation, widths, enum underlying types:
+> `references/sql-script-conventions.md`
 > Scale-adaptive + circuit-breaker + override flags: `references/scale-adaptive.md`
 > Model routing — Opus for hard/cross-page work, Sonnet replicating an Opus exemplar: `references/model-routing.md`
 
@@ -189,9 +191,14 @@ Run the gates in `references/verification-pipeline.md` for the feature. All must
   implement loop on its findings until only nitpicks remain. Flat hierarchy: the critic spawns nothing.
 
 ### Step 6 — Mark done + write back + checkpoint
-- Mark the feature `done` in the ledger and `features.json` `status`. Write the feature id into the owning
-  scenario's `traces_down.features[]` (idempotent). Preserve every other scenario field byte-for-byte
-  (especially `business{}`, `analysis{}`, locked scenarios).
+- Mark the feature `done` in **both** ledgers in the same write: `.scenarioforge/impl-progress.json`
+  (source of truth for build state) AND `features.json` — the FE's `status` **and** a recomputed
+  `rollup.by_status`. A features.json whose per-FE statuses or rollup disagree with impl-progress is a
+  broken audit trail (field failure: rollup claimed 23 ready_for_impl while 22 were done). A feature
+  deliberately out of this run's scope (phase-tagged/deferred) is listed in `impl-progress.deferred[]` so
+  the count difference is explained, never silent.
+- Write the feature id into the owning scenario's `traces_down.features[]` (idempotent). Preserve every
+  other scenario field byte-for-byte (especially `business{}`, `analysis{}`, locked scenarios).
 - Checkpoint the ledger so the next feature (or the next session) resumes cleanly. Loop to the next feature
   in dependency order (exemplar before its replicas).
 
@@ -208,6 +215,8 @@ Run the gates in `references/verification-pipeline.md` for the feature. All must
 - [ ] `business{}` / `analysis{}` of every scenario unchanged; no `locked` scenario altered
 - [ ] No subagent spawned another subagent (flat hierarchy held)
 - [ ] The progress ledger is consistent and resumable; `traces_down.features` matches what was built
+- [ ] `features.json` per-FE `status` + `rollup.by_status` agree with `impl-progress.json`; out-of-scope FEs listed in `deferred[]`
+- [ ] Owner-run SQL scripts (if any) follow `sql-script-conventions.md` (idempotent 3×, no PRINT-subquery, enum underlying types, widths hold real data)
 - [ ] scenarios.json + features.json still parse
 
 ## Handoff

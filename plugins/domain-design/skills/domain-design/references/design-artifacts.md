@@ -47,7 +47,14 @@ Markdown table, one row per field across all entities. This is the contract scre
 
 Hard rules:
 - FK type MUST equal the referenced PK type (validated at ENTERPRISE / `/deliver-docs`).
-- Type vocabulary is DB-agnostic but concrete (uuid, decimal(p,s), varchar(n), int, bool, timestamptz, enum(...)).
+- Type vocabulary is DB-agnostic but concrete (uuid, decimal(p,s), varchar(n), **smallint / int / bigint**,
+  bool, timestamptz, enum(...)).
+- **An enum field states its storage type when it is not plain int** — `enum(draft,paid,void):smallint` —
+  and on a brownfield project the storage type MUST match the codebase's enum underlying type (a C#
+  `enum : short` is `smallint`; field bug: a DD-agnostic "int" became an INT column against a `: short`
+  enum and crashed every read at runtime). Check the existing convention columns before defaulting to int.
+- `varchar(n)` widths must hold the module's known real data **including composite/CSV values** — a width
+  that truncates a known seed value is a design error, not an implementation detail.
 - Nullable is explicit (Y/N) — never blank.
 
 ## Use Case

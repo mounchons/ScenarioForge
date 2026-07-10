@@ -17,7 +17,7 @@ the `scenario_ref`).
 
 ```jsonc
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",                     // 1.1.0 adds pages[].structure + controls[].container
   "feature_id": "FE-billing-pay",
   "scenario_ref": "SC-billing-001",
   "page_refs": ["PG-billing-checkout"],          // from traces_down.pages / mockups
@@ -26,10 +26,19 @@ the `scenario_ref`).
     "page_id": "PG-billing-checkout",
     "url_pattern": "/billing/checkout/{id}",
     "view_path": "Views/Billing/Checkout.cshtml",
+    "structure": {                                // copied from the PG-* page record (screen-binding owns
+      "tabs": ["summary", "card"],                // it) — tab/modal/section layout of the page; {} for a
+      "default_tab": "summary",                   // flat page. scenario-verify uses this to activate the
+      "modals": []                                // right tab before asserting a control.
+    },
     "controls": [{
       "id": "card-select",
       "type": "combobox",
       "selector": "[data-testid='billing-card']",
+      "container": { "tab": "card" },             // which tab/modal hosts this control; null = always
+                                                  // visible on the default view. REQUIRED when the page
+                                                  // has structure — a control behind an inactive tab is
+                                                  // rendered-but-hidden, and QA must know to activate it.
       "binding": {
         "source": "api",                          // api | static | computed
         "options_endpoint": "GET /api/cards",

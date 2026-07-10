@@ -141,6 +141,27 @@ plan: [
 `/plan` shows this and stops. `/build` executes it phase by phase. `/next` executes exactly one pending
 phase (delegate + gate) and stops — useful for stepping through a run under supervision.
 
+## AMEND — user decisions arriving mid-run (the update-pass contract)
+
+Runs accumulate **open decisions** (gaps/conflicts workers refused to resolve). When the user answers a
+batch of them, do NOT re-run whole phases and do NOT let workers improvise — run a bounded **amendment**:
+
+1. **Record the amendment** in the run ledger: `amendments[] += { id: "AMEND-<date>-<slug>", date,
+   reason, decisions: { <GAP/CONFLICT-id>: "<the user's decision>" } }`. The decision text is the contract —
+   workers translate it, never reinterpret it.
+2. **Determine the affected phases** from what each decision touches (an entity/DD decision → domain-design;
+   a screen behavior → screen-binding; a feature/layering split → solution-arch; built code → feature-builder)
+   and run **update passes in canonical phase order** — only the affected workers, each delegated in its
+   UPDATE/APPEND mode with the decisions verbatim in the objective and the standard boundaries (append-safe:
+   never renumber, never touch unrelated artifacts, `business{}`/`analysis{}`/locked intact).
+3. **Gate each update pass** with a spot-check (artifacts parse; only the expected sections/traces changed;
+   the decision's ids now resolve; other gaps untouched), recorded under the amendment's `update_passes[]`.
+4. Each update pass **counts against the delegation cap**; a large amendment may need a user-approved cap
+   raise (`run-ledger.md`).
+
+The per-worker UPDATE/APPEND modes are the building blocks; this section is the cross-phase choreography —
+one amendment record, ordered update passes, one gate each, everything on the ledger.
+
 A **brownfield bootstrap** run plans differently — no ids yet, and Phase 0 leads:
 ```
 scale: STANDARD

@@ -24,7 +24,7 @@ Spawn a **fresh** subagent per category-batch with:
 - **boundaries** — these scenarios only; **fix the test, never the app** (a real app bug -> file a finding,
   leave the scenario failed); anchor on `data-testid` (no fuzzy selectors); do not touch other categories;
   **do not spawn another subagent** (flat hierarchy / circuit breaker).
-- **context_refs** — `qa-tracker.json#TS-...` (pointers, not the whole file) + the manifest control(s) +
+- **context_refs** — `.scenarioforge/qa-tracker.json#TS-...` (pointers, not the whole file) + the manifest control(s) +
   resolved URLs from `mockups/` + the scenario's `postconditions`. Pointers only — artifact pattern.
 
 ## Escalation

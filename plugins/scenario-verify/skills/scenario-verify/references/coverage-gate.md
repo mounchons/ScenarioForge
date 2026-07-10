@@ -8,7 +8,7 @@ release-ready while Gate 4 is blocked.
 ## The rule
 
 > For **every control** in the module's UI Control Manifests, **every mandatory category it triggers** must
-> have a `passed` scenario in `qa-tracker.json`.
+> have a `passed` scenario in `.scenarioforge/qa-tracker.json`.
 
 Mandatory categories per control come from `control-spec-scenarios.md`: `render-binding` always, plus each
 conditional category whose trigger fires (`api-binding`, `permission` per role, `validation` per rule,

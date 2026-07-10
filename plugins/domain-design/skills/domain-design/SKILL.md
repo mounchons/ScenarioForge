@@ -38,6 +38,16 @@ Writes back to each scenario's `traces_down`: `entities[]`, `use_cases[]`, `apis
 is **not** written here — `pages[]` is owned by `screen-binding`, which consumes this worker's sitemap +
 entities. Produces design files under `design/` (+ a registry) as the artifacts of record.
 
+Also writes **`design/design-notes.md`** — the forward-mode gap/conflict log (the counterpart of
+solution-arch's `features-notes.md` and feature-builder's `impl-notes.md`). Every design question this
+worker cannot answer from validated `business{}` goes here instead of being invented or dropped: numbered
+**GAP-nn** (something the scenarios never specified that the design needs) and **CONFLICT-nn** (two
+validated statements that cannot both hold), each with what it blocks and who decides. Downstream workers
+flag open GAP/CONFLICT ids on affected pages/features; when the user decides, the decision is recorded
+against the id (→ a **DER-nn** decision record) in the same file — so the design's open questions and their
+answers live in one auditable place. (`reverse-notes.md` remains the separate reverse/bootstrap-mode
+artifact; do not merge the two.)
+
 ## What this worker does NOT do (boundaries)
 
 - Never write `business{}` or create new scenarios (scenario-discovery owns Phase 1).
@@ -148,15 +158,21 @@ scenario-discovery to backfill; do not skip that step to make `/deliver-docs` pa
 - [ ] No screen/page design was produced here (sitemap nodes only — pages belong to screen-binding)
 - [ ] `business{}` and `analysis{}` of every scenario are unchanged; no `locked` scenario design clobbered
 - [ ] scenarios.json still parses; `traces_down` refs point at artifacts that actually exist under `design/`
+- [ ] Every unresolved design question is a numbered GAP/CONFLICT in `design/design-notes.md` (none silently dropped)
+- [ ] **Handoff counts re-derived from the artifacts at handoff time** — count the registry's entries / the
+      sitemap's actual nodes; never quote a number from memory (field drift: a handoff said 10 pages over a
+      9-node sitemap, and the next worker had to pick which to trust)
 - [ ] `/deliver-docs` only: all four cross-validation rules pass before assembly
 
 ## Handoff
 
-Return a light pointer to the orchestrator (artifact pattern — do not dump files):
+Return a light pointer to the orchestrator (artifact pattern — do not dump files). Every `<N>` below is
+**counted from the artifact right before returning**, not recalled:
 ```
 phase: 2-planning
 artifact: ./design/ (+ registry), scenarios.json#traces_down updated
-produced: <N> entities, <N> use cases, <N> APIs, sitemap for <N> has_ui scenarios
+produced: <N> entities, <N> use cases, <N> APIs, sitemap with <N> page nodes (<N> has_ui scenarios)
+open: <N> gaps + <N> conflicts in design/design-notes.md (ids GAP-.. / CONFLICT-..) | none
 next: delegate screen-binding for has_ui scenarios (consumes sitemap + entities),
       then solution-arch to compose features
 ```

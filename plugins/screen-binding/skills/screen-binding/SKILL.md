@@ -172,6 +172,8 @@ paste into claude.ai/design.
 - [ ] Every `has_ui == true` scenario in the set has non-empty `traces_down.pages`; no `has_ui == false` one does
 - [ ] Every page extends the shell (consistent layout/theme), and is wireframe or HTML as chosen
 - [ ] Every PG-* binds to exactly one sitemap node, carries a valid `scenario_ref`, `fidelity`, `source`, `design_ref`
+- [ ] Every page with tabs/sections/modals carries a `structure` block matching its mockup file (same tab
+      ids/count) — downstream phases read layout facts from here, never restate them from memory
 - [ ] Every screen/prompt field maps to an existing Data Dictionary row (no invented fields; gaps reported)
 - [ ] No `entities/use_cases/apis/features` written; only `pages`
 - [ ] `business{}` / `analysis{}` unchanged; no `locked` scenario's pages or the shell clobbered in UPDATE

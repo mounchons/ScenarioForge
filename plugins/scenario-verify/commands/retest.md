@@ -12,7 +12,7 @@ revived), typically after feature-builder resolved a finding or the test fixture
 Target: `$ARGUMENTS` — a single `TS-id`, `--failed` (all failed in the module), or `--all`.
 
 Do this:
-1. Read `qa-tracker.json`. Select the target scenario(s). If a target is `passed`, say so and skip it
+1. Read `.scenarioforge/qa-tracker.json`. Select the target scenario(s). If a target is `passed`, say so and skip it
    (use `/run` to add new coverage, not `/retest` to re-prove green work).
 2. For a scenario with an open `finding_ref`, check whether the finding is marked `resolved` (feature-builder
    fixed the app). If still `open`, warn that the underlying bug may persist — re-run anyway and report.

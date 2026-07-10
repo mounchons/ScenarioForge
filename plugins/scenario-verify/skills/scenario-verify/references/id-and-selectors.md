@@ -46,6 +46,13 @@ Rules:
   (`[data-testid='billing-card-error']`); if absent, gap it the same way.
 - Assertions reference data, not pixels: assert the bound value, the option set, the error message *text
   key* (not the localized string), the disabled/hidden state.
+- **The selector says WHERE; the probe says HOW.** The manifest selector is verbatim, but whether to assert
+  `toBeVisible` / `toBeAttached` / `toHaveCount(0)`, and whether a tab must be activated first, comes from
+  probing the real DOM (`spec-authoring.md` Rule 0/2/3) — a selector being pinned does not mean the element
+  is visible, singular, or unconditionally rendered.
+- **Row-scoped / prefix selectors** (`[data-testid^='row-']`) match many elements on a grid — every such
+  assertion takes `.first()` (or an exact row id), or Playwright's strict mode fails the spec on a healthy
+  page.
 
 ## Why this is first-class
 

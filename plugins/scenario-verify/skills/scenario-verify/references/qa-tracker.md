@@ -16,7 +16,11 @@ and their run results. It is the end-of-spine artifact: every `TS` carries a `sc
     "generated_by": "scenario-verify",
     "generated_at": "2026-06-14T10:00:00Z",
     "effort_scale": "STANDARD",
-    "status": "running"                         // draft | generating | running | complete | blocked
+    "status": "running",                        // draft | generating | running | complete | blocked
+    "run_status": "3/9 specs run (165/639 executed); pending: rules-form, packages-form, ..."
+                                                // human-readable, MUST be updated after every spec batch —
+                                                // a rollup that says green while run_status says partial is
+                                                // a broken audit trail
   },
   "scenarios": [
     {
@@ -110,6 +114,18 @@ deprecated  <── control removed / manifest no longer triggers this category
 A `running`/`failed` scenario resumes at its recorded state: same `category`, `control_refs`, `model_tier`,
 `retries`. Skip every `passed`. Re-dispatch the batch at its recorded tier. Never restart a passed scenario;
 never reset a retry counter on resume (the circuit-breaker cap must hold across sessions).
+
+## Run evidence (audit trail — field-mandated)
+
+A `passed` status in this ledger is a **claim**; the per-spec Playwright JSON under
+`.scenarioforge/test-results/<spec-name>.json` is the **proof**. Rules:
+
+- One results file **per spec**, written on every run of that spec — never a single shared path that each
+  run overwrites (field failure mode: only the last spec's results survived, and they happened to be a
+  `skipped` snapshot, making the green rollup unverifiable).
+- `meta.run_status` is updated in the same write as the statuses it describes.
+- The orchestrator's release fence (Gate 4q) may re-derive `rollup.by_status` from these files; if they are
+  missing or contradict the rollup, the fence must treat the suite as **unproven**, not green.
 
 ## Analogy (.NET / DDD)
 
